@@ -55,8 +55,8 @@ export default function EpisodeCard({ episode, userData, onToggleWatch, onClick,
             EP {episode.number}
           </span>
           {episode.isFiller && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
-              style={{ background: 'rgba(100,116,139,0.12)', color: '#94A3B8' }}>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-md font-bold tracking-wide"
+              style={{ background: 'rgba(148,163,184,0.18)', color: '#64748B', border: '1px solid rgba(148,163,184,0.35)' }}>
               FILLER
             </span>
           )}
