@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { CheckCircle, Circle, Star, BookOpen, Heart } from 'lucide-react';
+import { CheckCircle2, Circle, Star, BookOpen, Heart } from 'lucide-react';
 import type { Episode, UserEpisodeData } from '../types';
 
 interface Props {
@@ -17,54 +17,69 @@ export default function EpisodeCard({ episode, userData, onToggleWatch, onClick,
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, delay: Math.min(index * 0.03, 0.4) }}
-      className={`glass-light rounded-xl p-3 flex items-center gap-3 cursor-pointer transition-all
-        hover:border-yellow-400/30 active:scale-[0.98]
-        ${watched ? 'opacity-75' : ''}
-        ${episode.isFiller ? 'border-l-2 border-l-gray-500/40' : 'border-l-2 border-l-yellow-400/40'}`}
+      transition={{ duration: 0.22, delay: Math.min(index * 0.025, 0.35), ease: [0.25,0.1,0.25,1] }}
+      whileHover={{ scale: 1.008, y: -1 }}
+      whileTap={{ scale: 0.985 }}
+      style={{
+        background: watched ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.82)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        border: '1px solid rgba(255,255,255,0.9)',
+        boxShadow: watched ? '0 2px 8px rgba(10,35,66,0.05)' : '0 4px 16px rgba(10,35,66,0.08)',
+      }}
+      className="rounded-2xl p-3.5 flex items-center gap-3 cursor-pointer"
       onClick={onClick}
     >
       {/* Watch toggle */}
-      <button
-        className="flex-shrink-0 transition-transform hover:scale-110 active:scale-95"
+      <motion.button
+        whileTap={{ scale: 0.85 }}
+        transition={{ type: 'spring', stiffness: 600, damping: 28 }}
+        className="flex-shrink-0"
         onClick={e => { e.stopPropagation(); onToggleWatch(); }}
       >
         {watched
-          ? <CheckCircle size={22} className="text-yellow-400" />
-          : <Circle size={22} className="text-white/30 hover:text-white/60" />
+          ? <CheckCircle2 size={22} style={{ color: '#E8A020' }} />
+          : <Circle size={22} style={{ color: '#CBD5E1' }} />
         }
-      </button>
+      </motion.button>
 
       {/* Info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
-          <span className="text-yellow-400/70 text-xs font-mono font-bold">
+          <span
+            className="text-xs font-bold font-mono"
+            style={{ color: watched ? '#94A3B8' : '#E8A020' }}
+          >
             EP {episode.number}
           </span>
           {episode.isFiller && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-600/40 text-gray-400 font-medium">
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
+              style={{ background: 'rgba(100,116,139,0.12)', color: '#94A3B8' }}>
               FILLER
             </span>
           )}
-          {favorite && <Heart size={11} className="text-pink-400 fill-pink-400" />}
+          {favorite && <Heart size={11} style={{ color: '#F472B6', fill: '#F472B6' }} />}
         </div>
-        <p className="text-white text-sm font-medium truncate leading-tight">{episode.title}</p>
-        <p className="text-white/40 text-xs mt-0.5">{episode.arcName}</p>
+        <p className="text-sm font-semibold truncate leading-tight"
+          style={{ color: watched ? '#94A3B8' : '#0A1628' }}>
+          {episode.title}
+        </p>
+        <p className="text-xs mt-0.5" style={{ color: '#94A3B8' }}>{episode.arcName}</p>
       </div>
 
-      {/* Rating */}
-      {rating > 0 && (
-        <div className="flex gap-0.5 flex-shrink-0">
-          {Array.from({ length: rating }, (_, i) => (
-            <Star key={i} size={10} className="fill-yellow-400 text-yellow-400" />
-          ))}
-        </div>
-      )}
-
-      {/* Notes indicator */}
-      {userData?.notes && <BookOpen size={14} className="text-blue-400/60 flex-shrink-0" />}
+      {/* Metadata */}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        {rating > 0 && (
+          <div className="flex gap-0.5">
+            {Array.from({ length: rating }, (_, i) => (
+              <Star key={i} size={10} style={{ fill: '#E8A020', color: '#E8A020' }} />
+            ))}
+          </div>
+        )}
+        {userData?.notes && <BookOpen size={13} style={{ color: '#93C5FD' }} />}
+      </div>
     </motion.div>
   );
 }

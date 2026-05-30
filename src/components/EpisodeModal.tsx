@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Heart, CheckCircle, Circle, BookOpen } from 'lucide-react';
+import { X, Heart, CheckCircle2, Circle, BookOpen, MapPin } from 'lucide-react';
 import type { Episode, UserEpisodeData } from '../types';
 import StarRating from './StarRating';
 import { useState } from 'react';
@@ -20,109 +20,128 @@ export default function EpisodeModal({ episode, userData, onClose, onToggleWatch
   const watched = !!userData?.isWatched;
   const favorite = !!userData?.isFavorite;
 
-  function handleNotesSave() {
-    onUpdate({ notes: notes.trim() || undefined });
-  }
-
   return (
     <AnimatePresence>
       {episode && (
         <>
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60]"
+            className="fixed inset-0 z-[60]"
+            style={{ background: 'rgba(10,22,40,0.55)', backdropFilter: 'blur(8px)' }}
             onClick={onClose}
           />
+
+          {/* Sheet */}
           <motion.div
-            initial={{ opacity: 0, y: 40, scale: 0.95 }}
+            initial={{ opacity: 0, y: 60, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 40, scale: 0.95 }}
-            transition={{ type: 'spring', bounce: 0.2 }}
+            exit={{ opacity: 0, y: 60, scale: 0.97 }}
+            transition={{ type: 'spring', stiffness: 360, damping: 32 }}
             className="fixed bottom-0 left-0 right-0 z-[70] md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:max-w-md md:w-full"
           >
-            <div className="glass border border-yellow-400/20 rounded-t-3xl md:rounded-3xl p-6 max-h-[85vh] overflow-y-auto">
+            <div
+              className="rounded-t-[32px] md:rounded-3xl p-6 max-h-[88vh] overflow-y-auto"
+              style={{
+                background: 'rgba(255,255,255,0.95)',
+                backdropFilter: 'blur(32px)',
+                WebkitBackdropFilter: 'blur(32px)',
+                border: '1px solid rgba(255,255,255,1)',
+                boxShadow: '0 -8px 40px rgba(10,35,66,0.18)',
+              }}
+            >
+              {/* Drag indicator */}
+              <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: 'rgba(10,35,66,0.12)' }} />
+
               {/* Header */}
-              <div className="flex items-start justify-between mb-4">
+              <div className="flex items-start justify-between mb-5">
                 <div className="flex-1 pr-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-yellow-400 text-sm font-bold font-mono">EP {episode.number}</span>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-sm font-black font-mono" style={{ color: '#E8A020' }}>EP {episode.number}</span>
                     {episode.isFiller && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-600/40 text-gray-400 font-medium">FILLER</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                        style={{ background: 'rgba(100,116,139,0.1)', color: '#94A3B8' }}>FILLER</span>
                     )}
                   </div>
-                  <h2 className="text-white font-bold text-base leading-snug">{episode.title}</h2>
-                  <p className="text-white/50 text-sm mt-1">{episode.arcName} · {episode.saga} Saga</p>
+                  <h2 className="font-bold text-base leading-snug" style={{ color: '#0A1628' }}>{episode.title}</h2>
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <MapPin size={11} style={{ color: '#94A3B8' }} />
+                    <p className="text-xs" style={{ color: '#94A3B8' }}>{episode.arcName} · {episode.saga} Saga</p>
+                  </div>
                 </div>
-                <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
-                  <X size={18} className="text-white/60" />
-                </button>
+                <motion.button
+                  whileTap={{ scale: 0.88 }}
+                  onClick={onClose}
+                  className="w-8 h-8 rounded-full flex items-center justify-center"
+                  style={{ background: 'rgba(10,35,66,0.06)' }}
+                >
+                  <X size={16} style={{ color: '#64748B' }} />
+                </motion.button>
               </div>
 
-              {/* Arc badge */}
-              <div className="flex items-center gap-2 mb-5">
-                <span className="text-2xl">{episode.isFiller ? '📺' : '⚓'}</span>
-                <div>
-                  <p className="text-white/40 text-xs">Saga</p>
-                  <p className="text-white/80 text-sm font-medium">{episode.saga}</p>
-                </div>
-              </div>
-
-              {/* Actions */}
+              {/* Watch + Favorite */}
               <div className="flex gap-3 mb-5">
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 28 }}
                   onClick={onToggleWatch}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all
-                    ${watched
-                      ? 'bg-yellow-400/20 text-yellow-400 border border-yellow-400/30'
-                      : 'bg-yellow-400 text-[#081C2D] hover:bg-yellow-300'
-                    }`}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm transition-all"
+                  style={watched
+                    ? { background: 'rgba(232,160,32,0.1)', color: '#E8A020', border: '1.5px solid rgba(232,160,32,0.3)' }
+                    : { background: 'linear-gradient(135deg, #F59E0B, #E8A020)', color: '#fff', boxShadow: '0 4px 16px rgba(232,160,32,0.35)' }
+                  }
                 >
-                  {watched ? <CheckCircle size={16} /> : <Circle size={16} />}
-                  {watched ? 'Watched' : 'Mark Watched'}
-                </button>
-                <button
+                  {watched ? <CheckCircle2 size={16} /> : <Circle size={16} />}
+                  {watched ? 'Watched ✓' : 'Mark as Watched'}
+                </motion.button>
+
+                <motion.button
+                  whileTap={{ scale: 0.88 }}
                   onClick={() => onUpdate({ isFavorite: !favorite })}
-                  className={`px-4 py-3 rounded-xl border transition-all ${
-                    favorite
-                      ? 'bg-pink-500/20 border-pink-500/40 text-pink-400'
-                      : 'border-white/10 text-white/40 hover:border-white/30 hover:text-white/60'
-                  }`}
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center border transition-all"
+                  style={favorite
+                    ? { background: 'rgba(244,114,182,0.12)', border: '1.5px solid rgba(244,114,182,0.3)', color: '#F472B6' }
+                    : { background: 'rgba(10,35,66,0.05)', border: '1.5px solid rgba(10,35,66,0.1)', color: '#94A3B8' }
+                  }
                 >
-                  <Heart size={16} className={favorite ? 'fill-pink-400' : ''} />
-                </button>
+                  <Heart size={18} style={{ fill: favorite ? '#F472B6' : 'none' }} />
+                </motion.button>
               </div>
 
               {/* Rating */}
-              <div className="mb-5">
-                <p className="text-white/60 text-xs mb-2">Your Rating</p>
+              <div className="mb-5 p-4 rounded-2xl" style={{ background: 'rgba(10,35,66,0.04)' }}>
+                <p className="text-xs font-semibold mb-3" style={{ color: '#64748B' }}>Your Rating</p>
                 <StarRating
                   rating={userData?.rating ?? 0}
                   onChange={r => onUpdate({ rating: r })}
-                  size={24}
+                  size={26}
                 />
               </div>
 
               {/* Notes */}
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <BookOpen size={14} className="text-blue-400" />
-                  <p className="text-white/60 text-xs">Personal Notes</p>
+                  <BookOpen size={14} style={{ color: '#93C5FD' }} />
+                  <p className="text-xs font-semibold" style={{ color: '#64748B' }}>Notes</p>
                 </div>
                 <textarea
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
-                  onBlur={handleNotesSave}
-                  placeholder="Add your thoughts about this episode..."
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white text-sm
-                    placeholder-white/30 resize-none focus:outline-none focus:border-yellow-400/40
-                    transition-colors"
+                  onBlur={() => onUpdate({ notes: notes.trim() || undefined })}
+                  placeholder="Your thoughts about this episode..."
+                  className="w-full rounded-2xl px-4 py-3 text-sm resize-none focus:outline-none transition-colors"
+                  style={{
+                    background: 'rgba(10,35,66,0.04)',
+                    border: '1.5px solid rgba(10,35,66,0.08)',
+                    color: '#0A1628',
+                  }}
                   rows={3}
                 />
               </div>
 
               {userData?.watchedAt && (
-                <p className="text-white/25 text-xs mt-3">
-                  Watched {new Date(userData.watchedAt).toLocaleDateString()}
+                <p className="text-xs mt-3" style={{ color: '#CBD5E1' }}>
+                  Watched {new Date(userData.watchedAt).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}
                 </p>
               )}
             </div>

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Flame, Target, Clock, ChevronRight, Zap, Trophy } from 'lucide-react';
+import { Flame, Target, Clock, ChevronRight, Zap, Trophy, Anchor } from 'lucide-react';
 import { useTracker } from '../context/TrackerContext';
 import { ALL_EPISODES } from '../data/episodes';
 import { TOTAL_EPISODES } from '../data/arcs';
@@ -13,25 +13,22 @@ import { useToast } from '../components/Toast';
 import type { Page } from '../types';
 
 const MILESTONES = [
-  { pct: 10, icon: '⚓', label: 'East Blue Rookie', msg: 'You\'ve started your pirate journey!' },
-  { pct: 25, icon: '🗺️', label: 'Grand Line Explorer', msg: 'A quarter of the way to becoming Pirate King!' },
-  { pct: 50, icon: '⚔️', label: 'War Veteran', msg: 'Half the seas conquered, nakama!' },
-  { pct: 75, icon: '👑', label: 'Yonko Rival', msg: 'You stand among the greats!' },
-  { pct: 100, icon: '🏆', label: 'Pirate King', msg: 'You\'ve conquered every sea!' },
+  { pct: 10,  icon: '⚓', label: 'East Blue Rookie',  msg: "You've set sail, nakama!" },
+  { pct: 25,  icon: '🗺️', label: 'Grand Line Explorer', msg: 'Quarter of the seas conquered!' },
+  { pct: 50,  icon: '⚔️', label: 'War Veteran',       msg: 'Half the journey done!' },
+  { pct: 75,  icon: '👑', label: 'Yonko Rival',       msg: 'Among the greatest pirates!' },
+  { pct: 100, icon: '🏆', label: 'Pirate King',       msg: 'You conquered every sea!' },
 ];
 
-const PIRATE_MSGS = [
-  "The sea is calling, nakama! Set sail!",
-  "Even if I have to rip your dreams apart, I'll seize the One Piece!",
-  "I'd rather fight to the death than live like a coward!",
-  "I'm not gonna run away, I never go back on my word!",
-  "Your life is your own. Rise to the challenge.",
-  "GOMU GOMU NO... let's watch another episode!",
+const QUOTES = [
+  '"I\'m not gonna run away, I never go back on my word!" — Naruto... wait, wrong show.',
+  '"The sea is calling, nakama. Set sail!"',
+  '"Even if I have to rip my dreams apart, I\'ll seize the One Piece!"',
+  '"Nothing happened." — Roronoa Zoro (probably)',
+  '"Your life is your own. Rise to the challenge of shaping it."',
 ];
 
-interface Props {
-  onNavigate: (page: Page) => void;
-}
+interface Props { onNavigate: (p: Page) => void; }
 
 export default function HomePage({ onNavigate }: Props) {
   const { state, totalWatched, nextEpisode, markWatched, isWatched, getEpisodeData, updateEpisode, markUnwatched } = useTracker();
@@ -43,99 +40,121 @@ export default function HomePage({ onNavigate }: Props) {
   const pct = Math.round((totalWatched / totalEps) * 100);
 
   const currentEpisode = ALL_EPISODES.find(e => e.number === Math.min(nextEpisode, totalEps));
-  const recentEps = useMemo(() =>
-    ALL_EPISODES.filter(e => e.number > nextEpisode - 4 && e.number <= nextEpisode + 3 && e.number >= 1 && e.number <= totalEps)
-      .slice(0, 5),
-    [nextEpisode, totalEps]
+  const nearbyEps = useMemo(() =>
+    ALL_EPISODES.filter(e => e.number >= Math.max(1, nextEpisode - 3) && e.number <= nextEpisode + 4).slice(0, 5),
+    [nextEpisode]
   );
 
-  const nextMilestone = MILESTONES.find(m => pct < m.pct);
   const achievedMilestones = MILESTONES.filter(m => pct >= m.pct);
+  const nextMilestone = MILESTONES.find(m => pct < m.pct);
   const latestMilestone = achievedMilestones[achievedMilestones.length - 1];
-
-  const pirateMsg = PIRATE_MSGS[Math.floor(Math.random() * PIRATE_MSGS.length)];
+  const quote = QUOTES[totalWatched % QUOTES.length];
   const hoursWatched = Math.round((totalWatched * 24) / 60);
 
   function handleMarkCurrentWatched() {
     if (!currentEpisode) return;
     markWatched(currentEpisode.number);
-    toast(`Episode ${currentEpisode.number} marked as watched! ⚓`, 'success');
-
+    toast(`Episode ${currentEpisode.number} marked! ⚓`, 'success');
     const newPct = Math.round(((totalWatched + 1) / totalEps) * 100);
-    const newMilestone = MILESTONES.find(m => m.pct <= newPct && m.pct > pct);
-    if (newMilestone) {
+    if (MILESTONES.some(m => m.pct <= newPct && m.pct > pct)) {
       setShowConfetti(true);
-      toast(`🎉 Achievement: ${newMilestone.label}!`, 'success');
+      const m = MILESTONES.find(m2 => m2.pct <= newPct && m2.pct > pct)!;
+      toast(`${m.icon} ${m.label} achieved!`, 'success');
     }
   }
 
   const selectedEpisode = selectedEp ? ALL_EPISODES.find(e => e.number === selectedEp) ?? null : null;
 
   return (
-    <div className="pb-28">
+    <div className="pb-32">
       {showConfetti && <Confetti onDone={() => setShowConfetti(false)} />}
 
-      {/* Header */}
-      <div className="px-4 pt-6 pb-2">
-        <div className="flex items-center justify-between mb-1">
+      {/* ── Header ── */}
+      <div className="px-5 pt-8 pb-4">
+        <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-white font-bold text-xl leading-tight">
-              <span className="gradient-text">One Piece</span> Tracker
-            </h1>
-            <p className="text-white/40 text-xs mt-0.5">{pirateMsg}</p>
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-xl">🏴‍☠️</span>
+              <h1 className="text-2xl font-black tracking-tight" style={{ color: '#0A1628' }}>
+                One Piece Tracker
+              </h1>
+            </div>
+            <p className="text-xs font-medium italic" style={{ color: '#94A3B8' }}>{quote}</p>
           </div>
-          <div className="flex items-center gap-1.5 bg-orange-500/20 border border-orange-500/30 rounded-xl px-3 py-1.5">
-            <Flame size={14} className="text-orange-400" />
-            <span className="text-orange-400 font-bold text-sm">{state.streakData.currentStreak}</span>
-          </div>
+          {/* Streak badge */}
+          <motion.div
+            whileHover={{ scale: 1.08 }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+            style={{ background: 'rgba(255,255,255,0.82)', border: '1px solid rgba(255,255,255,0.95)', boxShadow: '0 4px 12px rgba(10,35,66,0.10)' }}
+          >
+            <Flame size={14} style={{ color: '#F97316' }} />
+            <span className="font-black text-sm" style={{ color: '#0A1628' }}>{state.streakData.currentStreak}</span>
+          </motion.div>
         </div>
       </div>
 
-      {/* Main Progress Card */}
-      <div className="px-4 mb-4">
-        <div className="glass rounded-2xl p-5">
-          <div className="flex items-center gap-6">
-            <CircularProgress percentage={pct} size={120} strokeWidth={10}>
-              <p className="text-yellow-400 font-bold text-2xl leading-none">{pct}%</p>
-              <p className="text-white/50 text-[10px]">complete</p>
+      {/* ── Main Progress Card ── */}
+      <div className="px-5 mb-4">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+          className="rounded-3xl p-5"
+          style={{
+            background: 'rgba(255,255,255,0.88)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            border: '1px solid rgba(255,255,255,1)',
+            boxShadow: '0 12px 48px rgba(10,35,66,0.12)',
+          }}
+        >
+          <div className="flex items-center gap-5">
+            <CircularProgress percentage={pct} size={114} strokeWidth={10}>
+              <p className="text-2xl font-black leading-none" style={{ color: '#0A1628' }}>{pct}%</p>
+              <p className="text-[10px] font-semibold" style={{ color: '#94A3B8' }}>complete</p>
             </CircularProgress>
-            <div className="flex-1 space-y-3">
-              <div className="flex justify-between items-center">
+
+            <div className="flex-1 space-y-3.5">
+              <div className="flex justify-between">
                 <div>
-                  <p className="text-white/50 text-xs">Watched</p>
-                  <p className="text-white font-bold text-xl">{totalWatched.toLocaleString()}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#94A3B8' }}>Watched</p>
+                  <p className="text-2xl font-black" style={{ color: '#0A1628' }}>{totalWatched.toLocaleString()}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-white/50 text-xs">Remaining</p>
-                  <p className="text-white font-bold text-xl">{(totalEps - totalWatched).toLocaleString()}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#94A3B8' }}>Left</p>
+                  <p className="text-2xl font-black" style={{ color: '#0A1628' }}>{(totalEps - totalWatched).toLocaleString()}</p>
                 </div>
               </div>
-              <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+
+              {/* Thin progress bar */}
+              <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(10,35,66,0.07)' }}>
                 <motion.div
-                  className="h-full rounded-full bg-gradient-to-r from-yellow-600 to-yellow-400"
+                  className="h-full rounded-full"
+                  style={{ background: 'linear-gradient(90deg, #F59E0B, #E8A020)' }}
                   initial={{ width: 0 }}
                   animate={{ width: `${pct}%` }}
-                  transition={{ duration: 1.2, ease: 'easeOut' }}
+                  transition={{ duration: 1.2, ease: [0.34, 1.1, 0.64, 1] }}
                 />
               </div>
-              <div className="flex justify-between">
+
+              <div className="flex gap-3">
                 <div className="flex items-center gap-1">
-                  <Clock size={11} className="text-blue-400" />
-                  <span className="text-white/50 text-xs">{hoursWatched}h watched</span>
+                  <Clock size={11} style={{ color: '#3B82F6' }} />
+                  <span className="text-xs font-medium" style={{ color: '#94A3B8' }}>{hoursWatched}h</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Target size={11} className="text-green-400" />
-                  <span className="text-white/50 text-xs">{totalEps} total</span>
+                  <Target size={11} style={{ color: '#16A34A' }} />
+                  <span className="text-xs font-medium" style={{ color: '#94A3B8' }}>{totalEps} eps</span>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
 
-      {/* Continue Watching */}
+      {/* ── Continue Watching ── */}
       {currentEpisode && currentEpisode.number <= totalEps && (
-        <div className="px-4 mb-4">
+        <div className="px-5 mb-4">
           <ContinueWatching
             episode={currentEpisode}
             onMarkWatched={handleMarkCurrentWatched}
@@ -144,103 +163,129 @@ export default function HomePage({ onNavigate }: Props) {
         </div>
       )}
 
-      {/* Stats Row */}
-      <div className="px-4 mb-4 grid grid-cols-3 gap-3">
-        <div className="glass-light rounded-xl p-3 text-center">
-          <Flame size={16} className="text-orange-400 mx-auto mb-1" />
-          <p className="text-white font-bold">{state.streakData.currentStreak}</p>
-          <p className="text-white/40 text-[10px]">Day Streak</p>
-        </div>
-        <div className="glass-light rounded-xl p-3 text-center">
-          <Zap size={16} className="text-yellow-400 mx-auto mb-1" />
-          <p className="text-white font-bold">{state.goals.watchedToday}</p>
-          <p className="text-white/40 text-[10px]">Today</p>
-        </div>
-        <div className="glass-light rounded-xl p-3 text-center">
-          <Trophy size={16} className="text-purple-400 mx-auto mb-1" />
-          <p className="text-white font-bold">{achievedMilestones.length}</p>
-          <p className="text-white/40 text-[10px]">Badges</p>
-        </div>
+      {/* ── Quick stats row ── */}
+      <div className="px-5 mb-4 grid grid-cols-3 gap-3">
+        {[
+          { icon: <Flame size={16} style={{ color: '#F97316' }} />, val: state.streakData.currentStreak, label: 'Streak', bg: 'rgba(249,115,22,0.1)' },
+          { icon: <Zap size={16} style={{ color: '#E8A020' }} />,   val: state.goals.watchedToday,       label: 'Today',  bg: 'rgba(232,160,32,0.1)' },
+          { icon: <Trophy size={16} style={{ color: '#8B5CF6' }} />, val: achievedMilestones.length,     label: 'Badges', bg: 'rgba(139,92,246,0.1)' },
+        ].map(({ icon, val, label, bg }, i) => (
+          <motion.div
+            key={label}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1 + i * 0.06, type: 'spring', stiffness: 380, damping: 24 }}
+            className="rounded-2xl p-3.5 text-center"
+            style={{ background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.95)', boxShadow: '0 4px 16px rgba(10,35,66,0.07)' }}
+          >
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center mx-auto mb-2" style={{ background: bg }}>
+              {icon}
+            </div>
+            <p className="font-black text-lg leading-none" style={{ color: '#0A1628' }}>{val}</p>
+            <p className="text-[10px] font-semibold mt-0.5" style={{ color: '#94A3B8' }}>{label}</p>
+          </motion.div>
+        ))}
       </div>
 
-      {/* Latest Milestone */}
+      {/* ── Latest achievement ── */}
       {latestMilestone && (
-        <div className="px-4 mb-4">
-          <div className="glass-light rounded-2xl p-4 border border-yellow-400/20">
-            <div className="flex items-center gap-3">
-              <span className="text-3xl">{latestMilestone.icon}</span>
-              <div className="flex-1">
-                <p className="text-yellow-400 font-bold text-sm">{latestMilestone.label}</p>
-                <p className="text-white/50 text-xs">{latestMilestone.msg}</p>
-              </div>
+        <div className="px-5 mb-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="rounded-2xl p-4 flex items-center gap-3"
+            style={{ background: 'rgba(255,255,255,0.82)', border: '1.5px solid rgba(232,160,32,0.3)', boxShadow: '0 4px 20px rgba(232,160,32,0.10)' }}
+          >
+            <span className="text-3xl">{latestMilestone.icon}</span>
+            <div>
+              <p className="font-bold text-sm" style={{ color: '#0A1628' }}>{latestMilestone.label}</p>
+              <p className="text-xs" style={{ color: '#94A3B8' }}>{latestMilestone.msg}</p>
             </div>
-          </div>
+            <div className="ml-auto">
+              <span className="text-xs font-semibold px-2 py-1 rounded-lg" style={{ background: 'rgba(232,160,32,0.12)', color: '#E8A020' }}>Achieved</span>
+            </div>
+          </motion.div>
         </div>
       )}
 
-      {/* Next Milestone */}
+      {/* ── Next milestone ── */}
       {nextMilestone && (
-        <div className="px-4 mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-white/70 text-sm font-semibold">Next Milestone</h2>
-            <span className="text-white/30 text-xs">{nextMilestone.pct - pct}% away</span>
+        <div className="px-5 mb-4">
+          <div className="flex items-center justify-between mb-2.5">
+            <p className="text-xs font-bold uppercase tracking-wider" style={{ color: '#94A3B8' }}>Next Milestone</p>
+            <span className="text-xs font-semibold" style={{ color: '#94A3B8' }}>{nextMilestone.pct - pct}% away</span>
           </div>
-          <div className="glass-light rounded-xl p-3 border border-white/5">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-xl opacity-40">{nextMilestone.icon}</span>
+          <div className="rounded-2xl p-4"
+            style={{ background: 'rgba(255,255,255,0.82)', border: '1px solid rgba(255,255,255,0.95)', boxShadow: '0 4px 16px rgba(10,35,66,0.07)' }}>
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-2xl opacity-50">{nextMilestone.icon}</span>
               <div>
-                <p className="text-white/60 text-sm font-medium">{nextMilestone.label}</p>
-                <p className="text-white/30 text-xs">At {nextMilestone.pct}% completion</p>
+                <p className="font-semibold text-sm" style={{ color: '#0A1628' }}>{nextMilestone.label}</p>
+                <p className="text-xs" style={{ color: '#94A3B8' }}>At {nextMilestone.pct}% completion</p>
               </div>
             </div>
-            <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-              <motion.div
-                className="h-full bg-yellow-400/60 rounded-full"
+            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(10,35,66,0.07)' }}>
+              <motion.div className="h-full rounded-full"
+                style={{ background: 'linear-gradient(90deg, #F59E0B80, #E8A02080)' }}
                 initial={{ width: 0 }}
                 animate={{ width: `${(pct / nextMilestone.pct) * 100}%` }}
-                transition={{ duration: 1, delay: 0.4 }}
+                transition={{ duration: 1, delay: 0.3 }}
               />
             </div>
           </div>
         </div>
       )}
 
-      {/* Recent Episodes */}
-      {recentEps.length > 0 && (
-        <div className="px-4 mb-4">
+      {/* ── Around current episode ── */}
+      {nearbyEps.length > 0 && (
+        <div className="px-5 mb-4">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-white/70 text-sm font-semibold">Around Current Episode</h2>
-            <button
-              onClick={() => onNavigate('episodes')}
-              className="text-yellow-400/70 text-xs flex items-center gap-0.5"
-            >
-              All <ChevronRight size={12} />
+            <div className="flex items-center gap-2">
+              <Anchor size={14} style={{ color: '#94A3B8' }} />
+              <p className="text-xs font-bold uppercase tracking-wider" style={{ color: '#94A3B8' }}>Around Current</p>
+            </div>
+            <button onClick={() => onNavigate('episodes')} className="flex items-center gap-0.5">
+              <span className="text-xs font-semibold" style={{ color: '#E8A020' }}>All</span>
+              <ChevronRight size={13} style={{ color: '#E8A020' }} />
             </button>
           </div>
-          <div className="space-y-2">
-            {recentEps.map(ep => {
+
+          <div
+            className="rounded-2xl overflow-hidden"
+            style={{ background: 'rgba(255,255,255,0.82)', border: '1px solid rgba(255,255,255,0.95)', boxShadow: '0 4px 16px rgba(10,35,66,0.07)' }}
+          >
+            {nearbyEps.map((ep, i) => {
               const watched = isWatched(ep.number);
+              const isCurrent = ep.number === nextEpisode;
               return (
-                <div
+                <motion.div
                   key={ep.number}
+                  whileTap={{ scale: 0.985 }}
                   onClick={() => setSelectedEp(ep.number)}
-                  className={`flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-colors
-                    ${ep.number === nextEpisode ? 'bg-yellow-400/10 border border-yellow-400/20' : 'hover:bg-white/5'}`}
+                  className="flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-black/[0.02]"
+                  style={{ borderBottom: i < nearbyEps.length - 1 ? '1px solid rgba(10,35,66,0.06)' : 'none',
+                    background: isCurrent ? 'rgba(232,160,32,0.06)' : 'transparent' }}
                 >
-                  <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0
-                    ${watched ? 'bg-yellow-400 text-[#081C2D]' : 'bg-white/10 text-white/40'}`}>
+                  <div
+                    className="w-7 h-7 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0"
+                    style={{
+                      background: watched ? 'linear-gradient(135deg, #F59E0B, #E8A020)' : isCurrent ? 'rgba(10,35,66,0.08)' : 'rgba(10,35,66,0.05)',
+                      color: watched ? '#fff' : '#0A1628',
+                    }}
+                  >
                     {ep.number}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-xs font-medium truncate ${watched ? 'text-white/50' : 'text-white/80'}`}>
+                    <p className="text-xs font-semibold truncate" style={{ color: watched ? '#94A3B8' : '#0A1628' }}>
                       {ep.title}
                     </p>
-                    <p className="text-white/30 text-[10px]">{ep.arcName}</p>
+                    <p className="text-[10px]" style={{ color: '#CBD5E1' }}>{ep.arcName}</p>
                   </div>
-                  {ep.number === nextEpisode && (
-                    <span className="text-yellow-400 text-[10px] font-bold flex-shrink-0">NEXT</span>
+                  {isCurrent && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                      style={{ background: 'rgba(232,160,32,0.15)', color: '#E8A020' }}>NEXT</span>
                   )}
-                </div>
+                </motion.div>
               );
             })}
           </div>
@@ -249,10 +294,7 @@ export default function HomePage({ onNavigate }: Props) {
 
       {/* FAB */}
       {currentEpisode && currentEpisode.number <= totalEps && !isWatched(currentEpisode.number) && (
-        <FloatingActionButton
-          episodeNum={currentEpisode.number}
-          onMark={handleMarkCurrentWatched}
-        />
+        <FloatingActionButton episodeNum={currentEpisode.number} onMark={handleMarkCurrentWatched} />
       )}
 
       <EpisodeModal

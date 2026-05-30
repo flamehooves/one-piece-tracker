@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Search, X, Filter, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTracker } from '../context/TrackerContext';
@@ -9,14 +9,14 @@ import EpisodeModal from '../components/EpisodeModal';
 import type { FilterOption, SortOption, Episode } from '../types';
 import { useToast } from '../components/Toast';
 
-const FILTER_LABELS: Record<FilterOption, string> = {
-  all: 'All', watched: 'Watched', unwatched: 'Unwatched',
-  canon: 'Canon', filler: 'Filler', favorites: 'Favorites',
-};
-
-const SORT_LABELS: Record<SortOption, string> = {
-  'number-asc': 'Ep ↑', 'number-desc': 'Ep ↓', 'arc': 'By Arc',
-};
+const FILTERS: { id: FilterOption; label: string }[] = [
+  { id: 'all',       label: 'All' },
+  { id: 'watched',   label: 'Watched' },
+  { id: 'unwatched', label: 'Unwatched' },
+  { id: 'canon',     label: 'Canon' },
+  { id: 'filler',    label: 'Filler' },
+  { id: 'favorites', label: '♥ Favs' },
+];
 
 const PAGE_SIZE = 50;
 
@@ -26,123 +26,92 @@ export default function EpisodesPage() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterOption>('all');
   const [sort, setSort] = useState<SortOption>('number-asc');
-  const [arcFilter, setArcFilter] = useState<string>('all');
+  const [arcFilter, setArcFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedEp, setSelectedEp] = useState<number | null>(null);
   const [page, setPage] = useState(1);
-  const listRef = useRef<HTMLDivElement>(null);
 
   const episodes = useMemo(() => {
-    let eps = state.settings.showFiller
-      ? ALL_EPISODES
-      : ALL_EPISODES.filter(e => !e.isFiller);
-
+    let eps = state.settings.showFiller ? ALL_EPISODES : ALL_EPISODES.filter(e => !e.isFiller);
     if (arcFilter !== 'all') eps = eps.filter(e => e.arcId === arcFilter);
-
     if (search.trim()) {
       const q = search.toLowerCase();
-      eps = eps.filter(e =>
-        e.title.toLowerCase().includes(q) ||
-        String(e.number).includes(q) ||
-        e.arcName.toLowerCase().includes(q)
-      );
+      eps = eps.filter(e => e.title.toLowerCase().includes(q) || String(e.number).includes(q) || e.arcName.toLowerCase().includes(q));
     }
-
     switch (filter) {
-      case 'watched': eps = eps.filter(e => isWatched(e.number)); break;
+      case 'watched':   eps = eps.filter(e => isWatched(e.number)); break;
       case 'unwatched': eps = eps.filter(e => !isWatched(e.number)); break;
-      case 'canon': eps = eps.filter(e => !e.isFiller); break;
-      case 'filler': eps = eps.filter(e => e.isFiller); break;
+      case 'canon':     eps = eps.filter(e => !e.isFiller); break;
+      case 'filler':    eps = eps.filter(e => e.isFiller); break;
       case 'favorites': eps = eps.filter(e => state.watchedEpisodes[e.number]?.isFavorite); break;
     }
-
-    switch (sort) {
-      case 'number-desc': return [...eps].reverse();
-      case 'arc': return [...eps].sort((a, b) => a.arcId.localeCompare(b.arcId) || a.number - b.number);
-      default: return eps;
-    }
+    return sort === 'number-desc' ? [...eps].reverse() : eps;
   }, [search, filter, sort, arcFilter, state.watchedEpisodes, state.settings.showFiller, isWatched]);
 
-  const totalFiltered = episodes.length;
-  const visibleEps = episodes.slice(0, page * PAGE_SIZE);
-  const hasMore = visibleEps.length < totalFiltered;
-
+  const visible = episodes.slice(0, page * PAGE_SIZE);
   const selectedEpisode = selectedEp ? ALL_EPISODES.find(e => e.number === selectedEp) ?? null : null;
 
   const handleToggle = useCallback((ep: Episode) => {
-    if (isWatched(ep.number)) {
-      markUnwatched(ep.number);
-      toast(`EP ${ep.number} unmarked`, 'info');
-    } else {
-      markWatched(ep.number);
-      toast(`EP ${ep.number} watched! ⚓`, 'success');
-    }
+    if (isWatched(ep.number)) { markUnwatched(ep.number); toast(`EP ${ep.number} unmarked`, 'info'); }
+    else { markWatched(ep.number); toast(`EP ${ep.number} watched! ⚓`, 'success'); }
   }, [isWatched, markWatched, markUnwatched, toast]);
 
-  function handleSearch(v: string) {
-    setSearch(v);
-    setPage(1);
-  }
-
-  function handleFilter(f: FilterOption) {
-    setFilter(f);
-    setPage(1);
-  }
-
-  const arcOptions = useMemo(() =>
-    [{ id: 'all', name: 'All Arcs' }, ...ARC_DEFINITIONS.map(a => ({ id: a.id, name: a.name }))],
-    []
-  );
+  const arcOptions = useMemo(() => [
+    { id: 'all', name: 'All Arcs' },
+    ...ARC_DEFINITIONS.map(a => ({ id: a.id, name: a.name })),
+  ], []);
 
   return (
-    <div className="pb-28">
-      {/* Header */}
-      <div className="px-4 pt-6 pb-3 sticky top-0 z-30 bg-[#081C2D]/90 backdrop-blur-md">
-        <div className="flex items-center gap-2 mb-3">
-          <h1 className="text-white font-bold text-lg flex-1">Episodes</h1>
-          <span className="text-white/30 text-xs">{totalFiltered} eps</span>
+    <div className="pb-32">
+      {/* ── Header ── */}
+      <div className="px-5 pt-8 pb-3 sticky top-0 z-30"
+        style={{ background: 'rgba(235,240,248,0.88)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
+        <div className="flex items-center justify-between mb-3">
+          <h1 className="text-2xl font-black" style={{ color: '#0A1628' }}>Episodes</h1>
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
+            style={{ background: 'rgba(10,35,66,0.07)', color: '#64748B' }}>
+            {episodes.length.toLocaleString()}
+          </span>
         </div>
 
         {/* Search */}
-        <div className="relative mb-2">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+        <div className="relative mb-3">
+          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#94A3B8' }} />
           <input
-            type="text"
-            value={search}
-            onChange={e => handleSearch(e.target.value)}
+            type="text" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
             placeholder="Search episodes, arcs..."
-            className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-9 py-2.5 text-white text-sm
-              placeholder-white/30 focus:outline-none focus:border-yellow-400/40 transition-colors"
+            className="w-full rounded-2xl pl-10 pr-9 py-2.5 text-sm font-medium focus:outline-none transition-all"
+            style={{ background: 'rgba(255,255,255,0.82)', border: '1.5px solid rgba(255,255,255,0.95)', boxShadow: '0 2px 8px rgba(10,35,66,0.06)', color: '#0A1628' }}
           />
           {search && (
-            <button onClick={() => handleSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2">
-              <X size={14} className="text-white/40" />
+            <button onClick={() => { setSearch(''); setPage(1); }} className="absolute right-3.5 top-1/2 -translate-y-1/2">
+              <X size={14} style={{ color: '#94A3B8' }} />
             </button>
           )}
         </div>
 
-        {/* Filter row */}
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-          {(Object.keys(FILTER_LABELS) as FilterOption[]).map(f => (
-            <button
-              key={f}
-              onClick={() => handleFilter(f)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors
-                ${filter === f
-                  ? 'bg-yellow-400 text-[#081C2D]'
-                  : 'bg-white/5 text-white/50 hover:bg-white/10'
-                }`}
-            >
-              {FILTER_LABELS[f]}
-            </button>
+        {/* Filter chips */}
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+          {FILTERS.map(f => (
+            <motion.button key={f.id} whileTap={{ scale: 0.93 }}
+              onClick={() => { setFilter(f.id); setPage(1); }}
+              className="flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all"
+              style={filter === f.id
+                ? { background: '#0A1628', color: '#fff', boxShadow: '0 4px 12px rgba(10,35,66,0.25)' }
+                : { background: 'rgba(255,255,255,0.75)', color: '#64748B', border: '1px solid rgba(255,255,255,0.9)' }
+              }
+            >{f.label}</motion.button>
           ))}
-          <button
+          <motion.button whileTap={{ scale: 0.93 }}
             onClick={() => setShowFilters(s => !s)}
-            className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors
-              ${showFilters ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-white/5 text-white/50'}`}
+            className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold"
+            style={showFilters
+              ? { background: 'rgba(10,35,66,0.1)', color: '#0A1628', border: '1.5px solid rgba(10,35,66,0.15)' }
+              : { background: 'rgba(255,255,255,0.75)', color: '#94A3B8', border: '1px solid rgba(255,255,255,0.9)' }
+            }
           >
             <Filter size={11} /> More
-          </button>
+          </motion.button>
         </div>
 
         {/* Extended filters */}
@@ -154,35 +123,23 @@ export default function EpisodesPage() {
               exit={{ height: 0, opacity: 0 }}
               className="overflow-hidden"
             >
-              <div className="pt-2 flex gap-2">
-                {/* Arc filter */}
+              <div className="pt-2.5 flex gap-2">
                 <div className="relative flex-1">
-                  <select
-                    value={arcFilter}
-                    onChange={e => { setArcFilter(e.target.value); setPage(1); }}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-xs
-                      focus:outline-none focus:border-yellow-400/40 appearance-none"
-                  >
-                    {arcOptions.map(a => (
-                      <option key={a.id} value={a.id} className="bg-[#0A2342]">{a.name}</option>
-                    ))}
+                  <select value={arcFilter} onChange={e => { setArcFilter(e.target.value); setPage(1); }}
+                    className="w-full rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none appearance-none"
+                    style={{ background: 'rgba(255,255,255,0.82)', border: '1.5px solid rgba(255,255,255,0.95)', color: '#0A1628', boxShadow: '0 2px 8px rgba(10,35,66,0.06)' }}>
+                    {arcOptions.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                   </select>
-                  <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
+                  <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#94A3B8' }} />
                 </div>
-
-                {/* Sort */}
                 <div className="relative">
-                  <select
-                    value={sort}
-                    onChange={e => setSort(e.target.value as SortOption)}
-                    className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-xs
-                      focus:outline-none appearance-none pr-7"
-                  >
-                    {(Object.keys(SORT_LABELS) as SortOption[]).map(s => (
-                      <option key={s} value={s} className="bg-[#0A2342]">{SORT_LABELS[s]}</option>
-                    ))}
+                  <select value={sort} onChange={e => setSort(e.target.value as SortOption)}
+                    className="rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none appearance-none pr-7"
+                    style={{ background: 'rgba(255,255,255,0.82)', border: '1.5px solid rgba(255,255,255,0.95)', color: '#0A1628', boxShadow: '0 2px 8px rgba(10,35,66,0.06)' }}>
+                    <option value="number-asc">EP ↑</option>
+                    <option value="number-desc">EP ↓</option>
                   </select>
-                  <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
+                  <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#94A3B8' }} />
                 </div>
               </div>
             </motion.div>
@@ -190,47 +147,36 @@ export default function EpisodesPage() {
         </AnimatePresence>
       </div>
 
-      {/* Episode list */}
-      <div ref={listRef} className="px-4 space-y-2">
-        {visibleEps.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-4xl mb-3">🔍</p>
-            <p className="text-white/50 text-sm">No episodes found</p>
+      {/* ── Episode list ── */}
+      <div className="px-5 pt-2 space-y-2">
+        {visible.length === 0 ? (
+          <div className="text-center py-20">
+            <p className="text-5xl mb-3">🔍</p>
+            <p className="font-semibold text-sm" style={{ color: '#94A3B8' }}>No episodes found</p>
           </div>
         ) : (
           <>
-            {visibleEps.map((ep, i) => (
-              <EpisodeCard
-                key={ep.number}
-                episode={ep}
-                userData={getEpisodeData(ep.number)}
-                onToggleWatch={() => handleToggle(ep)}
-                onClick={() => setSelectedEp(ep.number)}
-                index={i}
-              />
+            {visible.map((ep, i) => (
+              <EpisodeCard key={ep.number} episode={ep} userData={getEpisodeData(ep.number)}
+                onToggleWatch={() => handleToggle(ep)} onClick={() => setSelectedEp(ep.number)} index={i} />
             ))}
-            {hasMore && (
-              <button
+            {visible.length < episodes.length && (
+              <motion.button whileTap={{ scale: 0.97 }}
                 onClick={() => setPage(p => p + 1)}
-                className="w-full py-3 text-yellow-400/70 text-sm border border-yellow-400/20 rounded-xl
-                  hover:bg-yellow-400/5 transition-colors mt-2"
+                className="w-full py-3.5 rounded-2xl text-sm font-bold mt-2"
+                style={{ background: 'rgba(255,255,255,0.82)', color: '#0A1628', border: '1px solid rgba(255,255,255,0.95)', boxShadow: '0 4px 16px rgba(10,35,66,0.07)' }}
               >
-                Load more ({totalFiltered - visibleEps.length} remaining)
-              </button>
+                Load {Math.min(PAGE_SIZE, episodes.length - visible.length)} more
+              </motion.button>
             )}
           </>
         )}
       </div>
 
       <EpisodeModal
-        episode={selectedEpisode}
-        userData={selectedEp ? getEpisodeData(selectedEp) : undefined}
+        episode={selectedEpisode} userData={selectedEp ? getEpisodeData(selectedEp) : undefined}
         onClose={() => setSelectedEp(null)}
-        onToggleWatch={() => {
-          if (!selectedEp) return;
-          const ep = ALL_EPISODES.find(e => e.number === selectedEp);
-          if (ep) handleToggle(ep);
-        }}
+        onToggleWatch={() => { if (selectedEp) { const ep = ALL_EPISODES.find(e => e.number === selectedEp); if (ep) handleToggle(ep); } }}
         onUpdate={data => { if (selectedEp) updateEpisode(selectedEp, data); }}
       />
     </div>
