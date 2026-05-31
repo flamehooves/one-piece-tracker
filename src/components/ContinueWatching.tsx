@@ -21,9 +21,6 @@ export default function ContinueWatching({ episode, onMarkWatched, onDetails }: 
         boxShadow: '0 20px 60px rgba(10,35,66,0.30), 0 4px 16px rgba(10,35,66,0.20)',
       }}
     >
-      {/* Shimmer overlay */}
-      <div className="absolute inset-0 shimmer" />
-
       {/* Decorative wave pattern */}
       <div className="absolute inset-0 opacity-10 overflow-hidden pointer-events-none">
         <svg viewBox="0 0 400 160" preserveAspectRatio="none" className="w-full h-full">
@@ -69,7 +66,7 @@ export default function ContinueWatching({ episode, onMarkWatched, onDetails }: 
               whileTap={{ scale: 0.93 }}
               transition={{ type: 'spring', stiffness: 500, damping: 28 }}
               onClick={e => { e.stopPropagation(); onDetails(); }}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-sm pulse-gold"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-sm"
               style={{ background: 'linear-gradient(135deg, #F59E0B, #E8A020)', color: '#0A1628', boxShadow: '0 4px 16px rgba(232,160,32,0.4)' }}
             >
               <Play size={14} className="fill-current" />

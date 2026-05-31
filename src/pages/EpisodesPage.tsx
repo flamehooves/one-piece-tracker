@@ -9,12 +9,15 @@ import EpisodeModal from '../components/EpisodeModal';
 import type { FilterOption, SortOption, Episode } from '../types';
 import { useToast } from '../components/Toast';
 
-const FILTERS: { id: FilterOption; label: string }[] = [
+const CANON_COUNT  = ALL_EPISODES.filter(e => !e.isFiller).length;
+const FILLER_COUNT = ALL_EPISODES.filter(e =>  e.isFiller).length;
+
+const FILTERS: { id: FilterOption; label: string; count?: number }[] = [
   { id: 'all',       label: 'All' },
   { id: 'watched',   label: 'Watched' },
   { id: 'unwatched', label: 'Unwatched' },
-  { id: 'canon',     label: 'Canon' },
-  { id: 'filler',    label: 'Filler' },
+  { id: 'canon',     label: 'Canon',  count: CANON_COUNT  },
+  { id: 'filler',    label: 'Filler', count: FILLER_COUNT },
   { id: 'favorites', label: '♥ Favs' },
 ];
 
@@ -95,12 +98,23 @@ export default function EpisodesPage() {
           {FILTERS.map(f => (
             <motion.button key={f.id} whileTap={{ scale: 0.93 }}
               onClick={() => { setFilter(f.id); setPage(1); }}
-              className="flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all"
+              className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all"
               style={filter === f.id
                 ? { background: '#0A1628', color: '#fff', boxShadow: '0 4px 12px rgba(10,35,66,0.25)' }
                 : { background: 'rgba(255,255,255,0.75)', color: '#64748B', border: '1px solid rgba(255,255,255,0.9)' }
               }
-            >{f.label}</motion.button>
+            >
+              {f.label}
+              {f.count !== undefined && (
+                <span className="rounded-full px-1.5 py-0.5 text-[9px] font-bold leading-none"
+                  style={filter === f.id
+                    ? { background: 'rgba(255,255,255,0.2)', color: '#fff' }
+                    : { background: 'rgba(10,35,66,0.08)', color: '#94A3B8' }
+                  }>
+                  {f.count}
+                </span>
+              )}
+            </motion.button>
           ))}
           <motion.button whileTap={{ scale: 0.93 }}
             onClick={() => setShowFilters(s => !s)}
@@ -118,10 +132,10 @@ export default function EpisodesPage() {
         <AnimatePresence>
           {showFilters && (
             <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             >
               <div className="pt-2.5 flex gap-2">
                 <div className="relative flex-1">
