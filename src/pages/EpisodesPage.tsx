@@ -43,13 +43,13 @@ export default function EpisodesPage() {
     }
     switch (filter) {
       case 'watched':   eps = eps.filter(e => isWatched(e.number)); break;
-      case 'unwatched': eps = eps.filter(e => !isWatched(e.number)); break;
+      case 'unwatched': eps = eps.filter(e => !isWatched(e.number) && (!e.isFiller || e.number > (state.lastWatched ?? 0))); break;
       case 'canon':     eps = eps.filter(e => !e.isFiller); break;
       case 'filler':    eps = eps.filter(e => e.isFiller); break;
       case 'favorites': eps = eps.filter(e => state.watchedEpisodes[e.number]?.isFavorite); break;
     }
     return sort === 'number-desc' ? [...eps].reverse() : eps;
-  }, [search, filter, sort, arcFilter, state.watchedEpisodes, state.settings.showFiller, isWatched]);
+  }, [search, filter, sort, arcFilter, state.watchedEpisodes, state.settings.showFiller, state.lastWatched, isWatched]);
 
   const visible = episodes.slice(0, page * PAGE_SIZE);
   const selectedEpisode = selectedEp ? ALL_EPISODES.find(e => e.number === selectedEp) ?? null : null;
