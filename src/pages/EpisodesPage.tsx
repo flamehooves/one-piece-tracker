@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Search, X, Filter, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTracker } from '../context/TrackerContext';
@@ -50,6 +50,11 @@ export default function EpisodesPage() {
     }
     return sort === 'number-desc' ? [...eps].reverse() : eps;
   }, [search, filter, sort, arcFilter, state.watchedEpisodes, state.settings.showFiller, state.lastWatched, isWatched]);
+
+  // Scroll to top whenever the filter/search changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [filter, search, arcFilter, sort]);
 
   const visible = episodes.slice(0, page * PAGE_SIZE);
   const selectedEpisode = selectedEp ? ALL_EPISODES.find(e => e.number === selectedEp) ?? null : null;

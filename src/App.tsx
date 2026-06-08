@@ -54,7 +54,7 @@ function AppInner() {
   const pages: Record<Page, React.ReactNode> = {
     home: <HomePage onNavigate={setPage} />,
     episodes: <EpisodesPage />,
-    arcs: <ArcsPage />,
+    arcs: <ArcsPage onNavigate={setPage} />,
     stats: <StatsPage />,
     settings: <SettingsPage />,
   };

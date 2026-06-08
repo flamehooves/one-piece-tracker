@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useMemo } from 'react';
 import type { TrackerState, UserEpisodeData, Settings } from '../types';
 
 const STORAGE_KEY = 'op-tracker-v1';
@@ -18,7 +18,6 @@ const DEFAULT_STATE: TrackerState = {
     streakDates: [],
   },
   goals: {
-    dailyGoal: 3,
     watchedToday: 0,
     lastResetDate: null,
   },
@@ -37,6 +36,12 @@ function todayISO(): string {
   return new Date().toISOString().split('T')[0];
 }
 
+function yesterdayISO(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().split('T')[0];
+}
+
 function updateStreak(state: TrackerState): TrackerState['streakData'] {
   const today = todayISO();
   const { streakData } = state;
@@ -44,12 +49,8 @@ function updateStreak(state: TrackerState): TrackerState['streakData'] {
 
   if (last === today) return streakData;
 
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayISO = yesterday.toISOString().split('T')[0];
-
   const newDates = [...new Set([...streakData.streakDates, today])];
-  let current = last === yesterdayISO ? streakData.currentStreak + 1 : 1;
+  const current = last === yesterdayISO() ? streakData.currentStreak + 1 : 1;
   const longest = Math.max(streakData.longestStreak, current);
 
   return { currentStreak: current, longestStreak: longest, lastWatchedDate: today, streakDates: newDates };
@@ -59,7 +60,7 @@ function updateGoals(state: TrackerState): TrackerState['goals'] {
   const today = todayISO();
   const { goals } = state;
   if (goals.lastResetDate !== today) {
-    return { ...goals, watchedToday: 1, lastResetDate: today };
+    return { watchedToday: 1, lastResetDate: today };
   }
   return { ...goals, watchedToday: goals.watchedToday + 1 };
 }
@@ -129,7 +130,12 @@ function loadState(): TrackerState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_STATE;
-    return { ...DEFAULT_STATE, ...JSON.parse(raw) };
+    const saved = JSON.parse(raw);
+    // Migrate: remove stale goals.dailyGoal if present
+    if (saved.goals?.dailyGoal !== undefined) {
+      delete saved.goals.dailyGoal;
+    }
+    return { ...DEFAULT_STATE, ...saved };
   } catch {
     return DEFAULT_STATE;
   }
@@ -148,6 +154,10 @@ interface TrackerContextValue {
   getEpisodeData: (ep: number) => UserEpisodeData | undefined;
   totalWatched: number;
   nextEpisode: number;
+  /** Streak that is 0 if the user hasn't watched today or yesterday */
+  effectiveStreak: number;
+  /** Episodes watched today (0 if the day has rolled over) */
+  watchedToday: number;
 }
 
 const TrackerContext = createContext<TrackerContextValue | null>(null);
@@ -164,8 +174,24 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state]);
 
-  const totalWatched = Object.values(state.watchedEpisodes).filter(d => d?.isWatched).length;
+  const totalWatched = useMemo(
+    () => Object.values(state.watchedEpisodes).filter(d => d?.isWatched).length,
+    [state.watchedEpisodes]
+  );
   const nextEpisode = state.lastWatched + 1;
+
+  // Derived at read-time so they're always accurate regardless of when the
+  // last mark-watched happened
+  const effectiveStreak = useMemo(() => {
+    const last = state.streakData.lastWatchedDate;
+    if (last === todayISO() || last === yesterdayISO()) return state.streakData.currentStreak;
+    return 0;
+  }, [state.streakData]);
+
+  const watchedToday = useMemo(() => {
+    const today = todayISO();
+    return state.goals.lastResetDate === today ? state.goals.watchedToday : 0;
+  }, [state.goals]);
 
   const markWatched = useCallback((ep: number, data?: Partial<UserEpisodeData>) => {
     dispatch({ type: 'MARK_WATCHED', ep, data });
@@ -183,7 +209,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     <TrackerContext.Provider value={{
       state, markWatched, markUnwatched, markUpTo, updateEpisode,
       updateSettings, importState, reset, isWatched, getEpisodeData,
-      totalWatched, nextEpisode,
+      totalWatched, nextEpisode, effectiveStreak, watchedToday,
     }}>
       {children}
     </TrackerContext.Provider>

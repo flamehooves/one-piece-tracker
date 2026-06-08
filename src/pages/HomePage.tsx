@@ -31,7 +31,7 @@ const QUOTES = [
 interface Props { onNavigate: (p: Page) => void; }
 
 export default function HomePage({ onNavigate }: Props) {
-  const { state, totalWatched, nextEpisode, markWatched, isWatched, getEpisodeData, updateEpisode, markUnwatched } = useTracker();
+  const { totalWatched, nextEpisode, markWatched, isWatched, getEpisodeData, updateEpisode, markUnwatched, effectiveStreak, watchedToday } = useTracker();
   const toast = useToast();
   const [selectedEp, setSelectedEp] = useState<number | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -41,7 +41,7 @@ export default function HomePage({ onNavigate }: Props) {
 
   const currentEpisode = ALL_EPISODES.find(e => e.number === Math.min(nextEpisode, totalEps));
   const nearbyEps = useMemo(() =>
-    ALL_EPISODES.filter(e => e.number >= Math.max(1, nextEpisode - 3) && e.number <= nextEpisode + 4).slice(0, 5),
+    ALL_EPISODES.filter(e => e.number >= Math.max(1, nextEpisode - 2) && e.number <= nextEpisode + 2),
     [nextEpisode]
   );
 
@@ -88,7 +88,7 @@ export default function HomePage({ onNavigate }: Props) {
             style={{ background: 'rgba(255,255,255,0.82)', border: '1px solid rgba(255,255,255,0.95)', boxShadow: '0 4px 12px rgba(10,35,66,0.10)' }}
           >
             <Flame size={14} style={{ color: '#F97316' }} />
-            <span className="font-black text-sm" style={{ color: '#0A1628' }}>{state.streakData.currentStreak}</span>
+            <span className="font-black text-sm" style={{ color: '#0A1628' }}>{effectiveStreak}</span>
           </motion.div>
         </div>
       </div>
@@ -166,8 +166,8 @@ export default function HomePage({ onNavigate }: Props) {
       {/* ── Quick stats row ── */}
       <div className="px-5 mb-4 grid grid-cols-3 gap-3">
         {[
-          { icon: <Flame size={16} style={{ color: '#F97316' }} />, val: state.streakData.currentStreak, label: 'Streak', bg: 'rgba(249,115,22,0.1)' },
-          { icon: <Zap size={16} style={{ color: '#E8A020' }} />,   val: state.goals.watchedToday,       label: 'Today',  bg: 'rgba(232,160,32,0.1)' },
+          { icon: <Flame size={16} style={{ color: '#F97316' }} />, val: effectiveStreak, label: 'Streak', bg: 'rgba(249,115,22,0.1)' },
+          { icon: <Zap size={16} style={{ color: '#E8A020' }} />,   val: watchedToday,    label: 'Today',  bg: 'rgba(232,160,32,0.1)' },
           { icon: <Trophy size={16} style={{ color: '#8B5CF6' }} />, val: achievedMilestones.length,     label: 'Badges', bg: 'rgba(139,92,246,0.1)' },
         ].map(({ icon, val, label, bg }, i) => (
           <motion.div

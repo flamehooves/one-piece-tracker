@@ -24,7 +24,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 export default function StatsPage() {
-  const { state, totalWatched } = useTracker();
+  const { state, totalWatched, effectiveStreak } = useTracker();
 
   const totalEps = ALL_EPISODES.length;
   const hoursWatched = Math.round((totalWatched * 24) / 60);
@@ -122,7 +122,7 @@ export default function StatsPage() {
         <div className="px-5 grid grid-cols-2 gap-3">
           <StatCard label="Hours Watched" value={`${hoursWatched}h`} sub={`≈ ${Math.round(hoursWatched/24)} days`}
             icon={<Clock size={17} style={{ color: '#3B82F6' }} />} iconBg="rgba(59,130,246,0.12)" index={0} />
-          <StatCard label="Day Streak" value={state.streakData.currentStreak} sub={`Best: ${state.streakData.longestStreak}`}
+          <StatCard label="Day Streak" value={effectiveStreak} sub={`Best: ${state.streakData.longestStreak}`}
             icon={<Flame size={17} style={{ color: '#F97316' }} />} iconBg="rgba(249,115,22,0.12)" index={1} />
           <StatCard label="Canon Episodes" value={canonWatched} sub={`+ ${fillerWatched} filler`}
             icon={<BarChart2 size={17} style={{ color: '#16A34A' }} />} iconBg="rgba(22,163,74,0.12)" index={2} />

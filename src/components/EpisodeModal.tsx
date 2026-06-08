@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Heart, CheckCircle2, Circle, BookOpen, MapPin } from 'lucide-react';
 import type { Episode, UserEpisodeData } from '../types';
 import StarRating from './StarRating';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface Props {
   episode: Episode | null;
@@ -14,6 +14,22 @@ interface Props {
 
 export default function EpisodeModal({ episode, userData, onClose, onToggleWatch, onUpdate }: Props) {
   const [notes, setNotes] = useState(userData?.notes ?? '');
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+
+  // Reset notes when switching episodes
+  useEffect(() => {
+    setNotes(userData?.notes ?? '');
+  }, [episode?.number]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-save notes 600ms after the user stops typing
+  useEffect(() => {
+    if (!episode) return;
+    const timer = setTimeout(() => {
+      onUpdateRef.current({ notes: notes.trim() || undefined });
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [notes, episode?.number]);
 
   if (!episode) return null;
 
@@ -127,7 +143,6 @@ export default function EpisodeModal({ episode, userData, onClose, onToggleWatch
                 <textarea
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
-                  onBlur={() => onUpdate({ notes: notes.trim() || undefined })}
                   placeholder="Your thoughts about this episode..."
                   className="w-full rounded-2xl px-4 py-3 text-sm resize-none focus:outline-none transition-colors"
                   style={{

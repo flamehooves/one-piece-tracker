@@ -4,9 +4,11 @@ import { useTracker } from '../context/TrackerContext';
 import { ARC_DEFINITIONS } from '../data/arcs';
 import { ALL_EPISODES } from '../data/episodes';
 import ArcCard from '../components/ArcCard';
-import type { ArcProgress } from '../types';
+import type { ArcProgress, Page } from '../types';
 
-export default function ArcsPage() {
+interface Props { onNavigate: (p: Page) => void; }
+
+export default function ArcsPage({ onNavigate }: Props) {
   const { state } = useTracker();
   const [sagaFilter, setSagaFilter] = useState('all');
 
@@ -82,7 +84,7 @@ export default function ArcsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: Math.min(i * 0.04, 0.4), type: 'spring', stiffness: 350, damping: 28 }}
           >
-            <ArcCard progress={progress} />
+            <ArcCard progress={progress} onArcClick={() => onNavigate('episodes')} />
           </motion.div>
         ))}
       </div>

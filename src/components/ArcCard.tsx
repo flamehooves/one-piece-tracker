@@ -47,8 +47,8 @@ export default function ArcCard({ progress, onArcClick }: Props) {
             <div className="flex items-center gap-1.5 mb-0.5">
               <h3 className="font-bold text-sm truncate" style={{ color: '#0A1628' }}>{arc.name}</h3>
               {arc.isFiller && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 font-semibold"
-                  style={{ background: 'rgba(100,116,139,0.1)', color: '#94A3B8' }}>F</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded-md flex-shrink-0 font-bold tracking-wide"
+                  style={{ background: 'rgba(148,163,184,0.18)', color: '#64748B', border: '1px solid rgba(148,163,184,0.35)' }}>FILLER</span>
               )}
               {isComplete && (
                 <Trophy size={13} style={{ color: '#E8A020', fill: '#E8A020' }} className="flex-shrink-0" />
@@ -84,11 +84,10 @@ export default function ArcCard({ progress, onArcClick }: Props) {
       <AnimatePresence>
         {expanded && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
-            className="overflow-hidden"
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
           >
             <div className="px-4 pb-4 pt-1" style={{ borderTop: '1px solid rgba(10,35,66,0.06)' }}>
               <p className="text-xs leading-relaxed mb-3" style={{ color: '#64748B' }}>{arc.description}</p>

@@ -49,7 +49,6 @@ export interface StreakData {
 }
 
 export interface Goals {
-  dailyGoal: number;
   watchedToday: number;
   lastResetDate: string | null;
 }
