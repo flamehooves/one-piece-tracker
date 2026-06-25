@@ -1,32 +1,30 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useTracker } from '../context/TrackerContext';
-import { ARC_DEFINITIONS } from '../data/arcs';
-import { ALL_EPISODES } from '../data/episodes';
 import ArcCard from '../components/ArcCard';
 import type { ArcProgress, Page } from '../types';
 
 interface Props { onNavigate: (p: Page) => void; }
 
 export default function ArcsPage({ onNavigate }: Props) {
-  const { state } = useTracker();
+  const { watchedEpisodes, animeEpisodes, animeArcs } = useTracker();
   const [sagaFilter, setSagaFilter] = useState('all');
 
-  const sagas = useMemo(() => ['all', ...Array.from(new Set(ARC_DEFINITIONS.map(a => a.saga)))], []);
+  const sagas = useMemo(() => ['all', ...Array.from(new Set(animeArcs.map(a => a.saga)))], [animeArcs]);
 
   const arcProgresses = useMemo<ArcProgress[]>(() =>
-    ARC_DEFINITIONS.map(arc => {
-      const eps = ALL_EPISODES.filter(e => e.arcId === arc.id);
-      const watched = eps.filter(e => !!state.watchedEpisodes[e.number]?.isWatched).length;
+    animeArcs.map(arc => {
+      const eps = animeEpisodes.filter(e => e.arcId === arc.id);
+      const watched = eps.filter(e => !!watchedEpisodes[e.number]?.isWatched).length;
       return { arc, total: eps.length, watched, percentage: eps.length ? (watched / eps.length) * 100 : 0 };
     }),
-    [state.watchedEpisodes]
+    [animeArcs, animeEpisodes, watchedEpisodes]
   );
 
   const filtered = sagaFilter === 'all' ? arcProgresses : arcProgresses.filter(p => p.arc.saga === sagaFilter);
 
-  const totalWatched = Object.values(state.watchedEpisodes).filter(d => d?.isWatched).length;
-  const fillerWatched = ALL_EPISODES.filter(e => e.isFiller && state.watchedEpisodes[e.number]?.isWatched).length;
+  const totalWatched = Object.values(watchedEpisodes).filter(d => d?.isWatched).length;
+  const fillerWatched = animeEpisodes.filter(e => e.isFiller && watchedEpisodes[e.number]?.isWatched).length;
   const canonWatched = totalWatched - fillerWatched;
   const completedArcs = arcProgresses.filter(p => p.percentage >= 100).length;
 
@@ -39,9 +37,9 @@ export default function ArcsPage({ onNavigate }: Props) {
         {/* Summary cards */}
         <div className="grid grid-cols-3 gap-3 mb-5">
           {[
-            { val: ARC_DEFINITIONS.length, label: 'Arcs',     color: '#0A1628', bg: 'rgba(10,35,66,0.07)' },
-            { val: completedArcs,           label: 'Done',     color: '#16A34A', bg: 'rgba(22,163,74,0.1)' },
-            { val: canonWatched,            label: 'Canon',    color: '#3B82F6', bg: 'rgba(59,130,246,0.1)' },
+            { val: animeArcs.length, label: 'Arcs',  color: '#0A1628' },
+            { val: completedArcs,   label: 'Done',   color: '#16A34A' },
+            { val: canonWatched,    label: 'Canon',  color: '#3B82F6' },
           ].map(({ val, label, color }, i) => (
             <motion.div
               key={label}

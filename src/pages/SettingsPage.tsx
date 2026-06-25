@@ -4,7 +4,6 @@ import { Sun, Moon, Download, Upload, Trash2, Eye, EyeOff, Target, Check } from 
 import { useTracker } from '../context/TrackerContext';
 import type { TrackerState } from '../types';
 import { useToast } from '../components/Toast';
-import { TOTAL_EPISODES } from '../data/arcs';
 
 const cardStyle = {
   background: 'rgba(255,255,255,0.82)',
@@ -39,10 +38,10 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 export default function SettingsPage() {
-  const { state, updateSettings, importState, reset, totalWatched, markUpTo } = useTracker();
+  const { state, updateSettings, importState, reset, totalWatched, markUpTo, lastWatched, animeTotal, animeName } = useTracker();
   const toast = useToast();
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [jumpEp, setJumpEp] = useState(String(state.lastWatched || ''));
+  const [jumpEp, setJumpEp] = useState(String(lastWatched || ''));
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function handleExport() {
@@ -64,7 +63,7 @@ export default function SettingsPage() {
     reader.onload = ev => {
       try {
         const data = JSON.parse(ev.target?.result as string) as TrackerState;
-        if (!data.watchedEpisodes) throw new Error('Invalid format');
+        if (!data.animeProgress && !(data as unknown as Record<string, unknown>).watchedEpisodes) throw new Error('Invalid format');
         importState(data);
         toast('Progress imported successfully!', 'success');
       } catch {
@@ -77,15 +76,15 @@ export default function SettingsPage() {
 
   function handleMarkUpTo() {
     const n = parseInt(jumpEp);
-    if (isNaN(n) || n < 1 || n > TOTAL_EPISODES) {
-      toast(`Enter a number between 1 and ${TOTAL_EPISODES}`, 'error');
+    if (isNaN(n) || n < 1 || n > animeTotal) {
+      toast(`Enter a number between 1 and ${animeTotal}`, 'error');
       return;
     }
     markUpTo(n);
     toast(`Marked all episodes up to EP ${n} as watched!`, 'success');
   }
 
-  const pct = Math.round((totalWatched / TOTAL_EPISODES) * 100);
+  const pct = Math.round((totalWatched / animeTotal) * 100);
 
   return (
     <div className="pb-32">
@@ -115,7 +114,7 @@ export default function SettingsPage() {
           </div>
           <div className="flex justify-between text-xs font-semibold" style={{ color: '#94A3B8' }}>
             <span>{totalWatched.toLocaleString()} watched</span>
-            <span>{(TOTAL_EPISODES - totalWatched).toLocaleString()} remaining</span>
+            <span>{(animeTotal - totalWatched).toLocaleString()} remaining</span>
           </div>
         </motion.div>
       </div>
@@ -227,10 +226,10 @@ export default function SettingsPage() {
             <input
               type="number"
               min={1}
-              max={TOTAL_EPISODES}
+              max={animeTotal}
               value={jumpEp}
               onChange={e => setJumpEp(e.target.value)}
-              placeholder={`Episode # (1–${TOTAL_EPISODES})`}
+              placeholder={`Episode # (1–${animeTotal})`}
               className="flex-1 rounded-xl px-3 py-2.5 text-sm font-medium focus:outline-none transition-all"
               style={{
                 background: 'rgba(10,35,66,0.05)',
@@ -315,7 +314,7 @@ export default function SettingsPage() {
                 <Trash2 size={17} style={{ color: '#EF4444' }} />
               </div>
               <div className="text-left">
-                <p className="text-sm font-semibold" style={{ color: '#EF4444' }}>Reset All Progress</p>
+                <p className="text-sm font-semibold" style={{ color: '#EF4444' }}>Reset {animeName} Progress</p>
                 <p className="text-xs" style={{ color: '#94A3B8' }}>This cannot be undone</p>
               </div>
             </motion.button>
@@ -351,7 +350,7 @@ export default function SettingsPage() {
         </motion.div>
 
         <p className="text-center text-xs py-2 font-medium" style={{ color: '#CBD5E1' }}>
-          One Piece Tracker v1.0 · Made for nakama
+          Anime Tracker v2.0 · One Piece · DBZ · DBGT · DBS
         </p>
       </div>
     </div>

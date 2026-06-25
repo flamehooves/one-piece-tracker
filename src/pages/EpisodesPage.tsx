@@ -2,29 +2,19 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Search, X, Filter, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTracker } from '../context/TrackerContext';
-import { ALL_EPISODES } from '../data/episodes';
-import { ARC_DEFINITIONS } from '../data/arcs';
 import EpisodeCard from '../components/EpisodeCard';
 import EpisodeModal from '../components/EpisodeModal';
 import type { FilterOption, SortOption, Episode } from '../types';
 import { useToast } from '../components/Toast';
 
-const CANON_COUNT  = ALL_EPISODES.filter(e => !e.isFiller).length;
-const FILLER_COUNT = ALL_EPISODES.filter(e =>  e.isFiller).length;
-
-const FILTERS: { id: FilterOption; label: string; count?: number }[] = [
-  { id: 'all',       label: 'All' },
-  { id: 'watched',   label: 'Watched' },
-  { id: 'unwatched', label: 'Unwatched' },
-  { id: 'canon',     label: 'Canon',  count: CANON_COUNT  },
-  { id: 'filler',    label: 'Filler', count: FILLER_COUNT },
-  { id: 'favorites', label: '♥ Favs' },
-];
-
 const PAGE_SIZE = 50;
 
 export default function EpisodesPage() {
-  const { isWatched, markWatched, markUnwatched, getEpisodeData, updateEpisode, state } = useTracker();
+  const {
+    isWatched, markWatched, markUnwatched, getEpisodeData, updateEpisode,
+    state, watchedEpisodes, lastWatched,
+    animeEpisodes, animeArcs,
+  } = useTracker();
   const toast = useToast();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterOption>('all');
@@ -34,8 +24,28 @@ export default function EpisodesPage() {
   const [selectedEp, setSelectedEp] = useState<number | null>(null);
   const [page, setPage] = useState(1);
 
+  // Reset filters when anime changes
+  useEffect(() => {
+    setFilter('all');
+    setSearch('');
+    setArcFilter('all');
+    setPage(1);
+  }, [animeEpisodes]);
+
+  const canonCount = useMemo(() => animeEpisodes.filter(e => !e.isFiller).length, [animeEpisodes]);
+  const fillerCount = useMemo(() => animeEpisodes.filter(e => e.isFiller).length, [animeEpisodes]);
+
+  const FILTERS: { id: FilterOption; label: string; count?: number }[] = [
+    { id: 'all',       label: 'All' },
+    { id: 'watched',   label: 'Watched' },
+    { id: 'unwatched', label: 'Unwatched' },
+    { id: 'canon',     label: 'Canon',  count: canonCount  },
+    { id: 'filler',    label: 'Filler', count: fillerCount },
+    { id: 'favorites', label: '♥ Favs' },
+  ];
+
   const episodes = useMemo(() => {
-    let eps = state.settings.showFiller ? ALL_EPISODES : ALL_EPISODES.filter(e => !e.isFiller);
+    let eps = state.settings.showFiller ? animeEpisodes : animeEpisodes.filter(e => !e.isFiller);
     if (arcFilter !== 'all') eps = eps.filter(e => e.arcId === arcFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -43,13 +53,13 @@ export default function EpisodesPage() {
     }
     switch (filter) {
       case 'watched':   eps = eps.filter(e => isWatched(e.number)); break;
-      case 'unwatched': eps = eps.filter(e => !isWatched(e.number) && (!e.isFiller || e.number > (state.lastWatched ?? 0))); break;
+      case 'unwatched': eps = eps.filter(e => !isWatched(e.number) && (!e.isFiller || e.number > lastWatched)); break;
       case 'canon':     eps = eps.filter(e => !e.isFiller); break;
       case 'filler':    eps = eps.filter(e => e.isFiller); break;
-      case 'favorites': eps = eps.filter(e => state.watchedEpisodes[e.number]?.isFavorite); break;
+      case 'favorites': eps = eps.filter(e => watchedEpisodes[e.number]?.isFavorite); break;
     }
     return sort === 'number-desc' ? [...eps].reverse() : eps;
-  }, [search, filter, sort, arcFilter, state.watchedEpisodes, state.settings.showFiller, state.lastWatched, isWatched]);
+  }, [search, filter, sort, arcFilter, watchedEpisodes, state.settings.showFiller, lastWatched, isWatched, animeEpisodes]);
 
   // Scroll to top whenever the filter/search changes
   useEffect(() => {
@@ -57,17 +67,17 @@ export default function EpisodesPage() {
   }, [filter, search, arcFilter, sort]);
 
   const visible = episodes.slice(0, page * PAGE_SIZE);
-  const selectedEpisode = selectedEp ? ALL_EPISODES.find(e => e.number === selectedEp) ?? null : null;
+  const selectedEpisode = selectedEp ? animeEpisodes.find(e => e.number === selectedEp) ?? null : null;
 
   const handleToggle = useCallback((ep: Episode) => {
     if (isWatched(ep.number)) { markUnwatched(ep.number); toast(`EP ${ep.number} unmarked`, 'info'); }
-    else { markWatched(ep.number); toast(`EP ${ep.number} watched! ⚓`, 'success'); }
+    else { markWatched(ep.number); toast(`EP ${ep.number} watched!`, 'success'); }
   }, [isWatched, markWatched, markUnwatched, toast]);
 
   const arcOptions = useMemo(() => [
     { id: 'all', name: 'All Arcs' },
-    ...ARC_DEFINITIONS.map(a => ({ id: a.id, name: a.name })),
-  ], []);
+    ...animeArcs.map(a => ({ id: a.id, name: a.name })),
+  ], [animeArcs]);
 
   return (
     <div className="pb-32">
@@ -195,7 +205,12 @@ export default function EpisodesPage() {
       <EpisodeModal
         episode={selectedEpisode} userData={selectedEp ? getEpisodeData(selectedEp) : undefined}
         onClose={() => setSelectedEp(null)}
-        onToggleWatch={() => { if (selectedEp) { const ep = ALL_EPISODES.find(e => e.number === selectedEp); if (ep) handleToggle(ep); } }}
+        onToggleWatch={() => {
+          if (selectedEp) {
+            const ep = animeEpisodes.find(e => e.number === selectedEp);
+            if (ep) handleToggle(ep);
+          }
+        }}
         onUpdate={data => { if (selectedEp) updateEpisode(selectedEp, data); }}
       />
     </div>

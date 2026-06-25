@@ -27,12 +27,19 @@ export interface UserEpisodeData {
   watchedAt?: string;
 }
 
-export interface TrackerState {
+export type AnimeId = 'one-piece' | 'dbz' | 'dbgt' | 'dbs';
+
+export interface AnimeProgress {
   watchedEpisodes: Record<number, UserEpisodeData>;
   lastWatched: number;
-  settings: Settings;
   streakData: StreakData;
   goals: Goals;
+}
+
+export interface TrackerState {
+  activeAnime: AnimeId;
+  animeProgress: Partial<Record<AnimeId, AnimeProgress>>;
+  settings: Settings;
 }
 
 export interface Settings {

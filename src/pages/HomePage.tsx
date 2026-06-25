@@ -2,8 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Flame, Target, Clock, ChevronRight, Zap, Trophy, Anchor } from 'lucide-react';
 import { useTracker } from '../context/TrackerContext';
-import { ALL_EPISODES } from '../data/episodes';
-import { TOTAL_EPISODES } from '../data/arcs';
+import { ANIME_REGISTRY, ANIME_IDS } from '../data/animeRegistry';
 import CircularProgress from '../components/CircularProgress';
 import ContinueWatching from '../components/ContinueWatching';
 import FloatingActionButton from '../components/FloatingActionButton';
@@ -12,71 +11,62 @@ import Confetti from '../components/Confetti';
 import { useToast } from '../components/Toast';
 import type { Page } from '../types';
 
-const MILESTONES = [
-  { pct: 10,  icon: '⚓', label: 'East Blue Rookie',  msg: "You've set sail, nakama!" },
-  { pct: 25,  icon: '🗺️', label: 'Grand Line Explorer', msg: 'Quarter of the seas conquered!' },
-  { pct: 50,  icon: '⚔️', label: 'War Veteran',       msg: 'Half the journey done!' },
-  { pct: 75,  icon: '👑', label: 'Yonko Rival',       msg: 'Among the greatest pirates!' },
-  { pct: 100, icon: '🏆', label: 'Pirate King',       msg: 'You conquered every sea!' },
-];
-
-const QUOTES = [
-  '"I\'m not gonna run away, I never go back on my word!" — Naruto... wait, wrong show.',
-  '"The sea is calling, nakama. Set sail!"',
-  '"Even if I have to rip my dreams apart, I\'ll seize the One Piece!"',
-  '"Nothing happened." — Roronoa Zoro (probably)',
-  '"Your life is your own. Rise to the challenge of shaping it."',
-];
-
 interface Props { onNavigate: (p: Page) => void; }
 
 export default function HomePage({ onNavigate }: Props) {
-  const { totalWatched, nextEpisode, markWatched, isWatched, getEpisodeData, updateEpisode, markUnwatched, effectiveStreak, watchedToday } = useTracker();
+  const {
+    totalWatched, nextEpisode, markWatched, isWatched, getEpisodeData, updateEpisode, markUnwatched,
+    effectiveStreak, watchedToday,
+    activeAnime, setActiveAnime, animeName, animeIcon, animeEpisodes, animeTotal,
+  } = useTracker();
   const toast = useToast();
   const [selectedEp, setSelectedEp] = useState<number | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
 
-  const totalEps = TOTAL_EPISODES;
-  const pct = Math.round((totalWatched / totalEps) * 100);
+  const animeEntry = ANIME_REGISTRY[activeAnime];
+  const milestones = animeEntry.milestones;
+  const quotes = animeEntry.quotes;
 
-  const currentEpisode = ALL_EPISODES.find(e => e.number === Math.min(nextEpisode, totalEps));
+  const pct = Math.round((totalWatched / animeTotal) * 100);
+
+  const currentEpisode = animeEpisodes.find(e => e.number === Math.min(nextEpisode, animeTotal));
   const nearbyEps = useMemo(() =>
-    ALL_EPISODES.filter(e => e.number >= Math.max(1, nextEpisode - 2) && e.number <= nextEpisode + 2),
-    [nextEpisode]
+    animeEpisodes.filter(e => e.number >= Math.max(1, nextEpisode - 2) && e.number <= nextEpisode + 2),
+    [animeEpisodes, nextEpisode]
   );
 
-  const achievedMilestones = MILESTONES.filter(m => pct >= m.pct);
-  const nextMilestone = MILESTONES.find(m => pct < m.pct);
+  const achievedMilestones = milestones.filter(m => pct >= m.pct);
+  const nextMilestone = milestones.find(m => pct < m.pct);
   const latestMilestone = achievedMilestones[achievedMilestones.length - 1];
-  const quote = QUOTES[totalWatched % QUOTES.length];
+  const quote = quotes[totalWatched % quotes.length];
   const hoursWatched = Math.round((totalWatched * 24) / 60);
 
   function handleMarkCurrentWatched() {
     if (!currentEpisode) return;
     markWatched(currentEpisode.number);
-    toast(`Episode ${currentEpisode.number} marked! ⚓`, 'success');
-    const newPct = Math.round(((totalWatched + 1) / totalEps) * 100);
-    if (MILESTONES.some(m => m.pct <= newPct && m.pct > pct)) {
+    toast(`Episode ${currentEpisode.number} marked! ${animeIcon}`, 'success');
+    const newPct = Math.round(((totalWatched + 1) / animeTotal) * 100);
+    if (milestones.some(m => m.pct <= newPct && m.pct > pct)) {
       setShowConfetti(true);
-      const m = MILESTONES.find(m2 => m2.pct <= newPct && m2.pct > pct)!;
+      const m = milestones.find(m2 => m2.pct <= newPct && m2.pct > pct)!;
       toast(`${m.icon} ${m.label} achieved!`, 'success');
     }
   }
 
-  const selectedEpisode = selectedEp ? ALL_EPISODES.find(e => e.number === selectedEp) ?? null : null;
+  const selectedEpisode = selectedEp ? animeEpisodes.find(e => e.number === selectedEp) ?? null : null;
 
   return (
     <div className="pb-32">
       {showConfetti && <Confetti onDone={() => setShowConfetti(false)} />}
 
       {/* ── Header ── */}
-      <div className="px-5 pt-8 pb-4">
+      <div className="px-5 pt-8 pb-3">
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-2 mb-0.5">
-              <span className="text-xl">🏴‍☠️</span>
+              <span className="text-xl">{animeIcon}</span>
               <h1 className="text-2xl font-black tracking-tight" style={{ color: '#0A1628' }}>
-                One Piece Tracker
+                {animeName}
               </h1>
             </div>
             <p className="text-xs font-medium italic" style={{ color: '#94A3B8' }}>{quote}</p>
@@ -90,6 +80,31 @@ export default function HomePage({ onNavigate }: Props) {
             <Flame size={14} style={{ color: '#F97316' }} />
             <span className="font-black text-sm" style={{ color: '#0A1628' }}>{effectiveStreak}</span>
           </motion.div>
+        </div>
+      </div>
+
+      {/* ── Anime Switcher ── */}
+      <div className="px-5 mb-4">
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+          {ANIME_IDS.map(id => {
+            const entry = ANIME_REGISTRY[id];
+            const isActive = id === activeAnime;
+            return (
+              <motion.button
+                key={id}
+                whileTap={{ scale: 0.93 }}
+                onClick={() => setActiveAnime(id)}
+                className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold transition-all"
+                style={isActive
+                  ? { background: '#0A1628', color: '#fff', boxShadow: '0 4px 12px rgba(10,35,66,0.25)' }
+                  : { background: 'rgba(255,255,255,0.82)', color: '#64748B', border: '1px solid rgba(255,255,255,0.95)', boxShadow: '0 2px 8px rgba(10,35,66,0.06)' }
+                }
+              >
+                <span className="text-sm leading-none">{entry.icon}</span>
+                <span>{entry.shortName}</span>
+              </motion.button>
+            );
+          })}
         </div>
       </div>
 
@@ -122,7 +137,7 @@ export default function HomePage({ onNavigate }: Props) {
                 </div>
                 <div className="text-right">
                   <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#94A3B8' }}>Left</p>
-                  <p className="text-2xl font-black" style={{ color: '#0A1628' }}>{(totalEps - totalWatched).toLocaleString()}</p>
+                  <p className="text-2xl font-black" style={{ color: '#0A1628' }}>{(animeTotal - totalWatched).toLocaleString()}</p>
                 </div>
               </div>
 
@@ -144,7 +159,7 @@ export default function HomePage({ onNavigate }: Props) {
                 </div>
                 <div className="flex items-center gap-1">
                   <Target size={11} style={{ color: '#16A34A' }} />
-                  <span className="text-xs font-medium" style={{ color: '#94A3B8' }}>{totalEps} eps</span>
+                  <span className="text-xs font-medium" style={{ color: '#94A3B8' }}>{animeTotal} eps</span>
                 </div>
               </div>
             </div>
@@ -153,7 +168,7 @@ export default function HomePage({ onNavigate }: Props) {
       </div>
 
       {/* ── Continue Watching ── */}
-      {currentEpisode && currentEpisode.number <= totalEps && (
+      {currentEpisode && currentEpisode.number <= animeTotal && (
         <div className="px-5 mb-4">
           <ContinueWatching
             episode={currentEpisode}
@@ -168,7 +183,7 @@ export default function HomePage({ onNavigate }: Props) {
         {[
           { icon: <Flame size={16} style={{ color: '#F97316' }} />, val: effectiveStreak, label: 'Streak', bg: 'rgba(249,115,22,0.1)' },
           { icon: <Zap size={16} style={{ color: '#E8A020' }} />,   val: watchedToday,    label: 'Today',  bg: 'rgba(232,160,32,0.1)' },
-          { icon: <Trophy size={16} style={{ color: '#8B5CF6' }} />, val: achievedMilestones.length,     label: 'Badges', bg: 'rgba(139,92,246,0.1)' },
+          { icon: <Trophy size={16} style={{ color: '#8B5CF6' }} />, val: achievedMilestones.length, label: 'Badges', bg: 'rgba(139,92,246,0.1)' },
         ].map(({ icon, val, label, bg }, i) => (
           <motion.div
             key={label}
@@ -293,7 +308,7 @@ export default function HomePage({ onNavigate }: Props) {
       )}
 
       {/* FAB */}
-      {currentEpisode && currentEpisode.number <= totalEps && !isWatched(currentEpisode.number) && (
+      {currentEpisode && currentEpisode.number <= animeTotal && !isWatched(currentEpisode.number) && (
         <FloatingActionButton episodeNum={currentEpisode.number} onMark={handleMarkCurrentWatched} />
       )}
 
@@ -304,7 +319,7 @@ export default function HomePage({ onNavigate }: Props) {
         onToggleWatch={() => {
           if (!selectedEp) return;
           if (isWatched(selectedEp)) { markUnwatched(selectedEp); toast(`EP ${selectedEp} unmarked`, 'info'); }
-          else { markWatched(selectedEp); toast(`EP ${selectedEp} watched! ⚓`, 'success'); }
+          else { markWatched(selectedEp); toast(`EP ${selectedEp} watched! ${animeIcon}`, 'success'); }
         }}
         onUpdate={data => { if (selectedEp) updateEpisode(selectedEp, data); }}
       />

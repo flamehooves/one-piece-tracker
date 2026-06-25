@@ -3,16 +3,7 @@ import { motion } from 'framer-motion';
 import { Clock, Flame, Heart, BarChart2, Star } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useTracker } from '../context/TrackerContext';
-import { ARC_DEFINITIONS } from '../data/arcs';
-import { ALL_EPISODES } from '../data/episodes';
 import StatCard from '../components/StatCard';
-
-const QUOTES = [
-  { text: '"A man\'s dream will never die!"', attr: '— Edward Newgate (Whitebeard)' },
-  { text: '"I don\'t want to conquer anything. I just think the guy with the most freedom in this ocean... that\'s the Pirate King!"', attr: '— Monkey D. Luffy' },
-  { text: '"Nothing happened."', attr: '— Roronoa Zoro' },
-  { text: '"I\'d rather fight to the death than live like a coward."', attr: '— Monkey D. Luffy' },
-];
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -24,59 +15,57 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 export default function StatsPage() {
-  const { state, totalWatched, effectiveStreak } = useTracker();
+  const { totalWatched, effectiveStreak, watchedEpisodes, streakData, animeEpisodes, animeArcs } = useTracker();
 
-  const totalEps = ALL_EPISODES.length;
+  const totalEps = animeEpisodes.length;
   const hoursWatched = Math.round((totalWatched * 24) / 60);
-  const canonWatched = ALL_EPISODES.filter(e => !e.isFiller && state.watchedEpisodes[e.number]?.isWatched).length;
-  const fillerWatched = ALL_EPISODES.filter(e => e.isFiller && state.watchedEpisodes[e.number]?.isWatched).length;
+  const canonWatched = animeEpisodes.filter(e => !e.isFiller && watchedEpisodes[e.number]?.isWatched).length;
+  const fillerWatched = animeEpisodes.filter(e => e.isFiller && watchedEpisodes[e.number]?.isWatched).length;
 
   const favoriteEps = useMemo(() =>
-    ALL_EPISODES.filter(e => state.watchedEpisodes[e.number]?.isFavorite).slice(0, 5),
-    [state.watchedEpisodes]
+    animeEpisodes.filter(e => watchedEpisodes[e.number]?.isFavorite).slice(0, 5),
+    [animeEpisodes, watchedEpisodes]
   );
 
   const ratedEps = useMemo(() =>
-    ALL_EPISODES
-      .filter(e => (state.watchedEpisodes[e.number]?.rating ?? 0) >= 4)
-      .sort((a, b) => (state.watchedEpisodes[b.number]?.rating ?? 0) - (state.watchedEpisodes[a.number]?.rating ?? 0))
+    animeEpisodes
+      .filter(e => (watchedEpisodes[e.number]?.rating ?? 0) >= 4)
+      .sort((a, b) => (watchedEpisodes[b.number]?.rating ?? 0) - (watchedEpisodes[a.number]?.rating ?? 0))
       .slice(0, 5),
-    [state.watchedEpisodes]
+    [animeEpisodes, watchedEpisodes]
   );
 
   const arcChartData = useMemo(() =>
-    ARC_DEFINITIONS
+    animeArcs
       .map(arc => {
-        const eps = ALL_EPISODES.filter(e => e.arcId === arc.id);
-        const watched = eps.filter(e => state.watchedEpisodes[e.number]?.isWatched).length;
+        const eps = animeEpisodes.filter(e => e.arcId === arc.id);
+        const watched = eps.filter(e => watchedEpisodes[e.number]?.isWatched).length;
         return { name: arc.name.length > 11 ? arc.name.slice(0, 11) + '…' : arc.name, watched, total: eps.length, color: arc.color };
       })
       .filter(d => d.watched > 0)
       .slice(0, 10),
-    [state.watchedEpisodes]
+    [animeArcs, animeEpisodes, watchedEpisodes]
   );
 
   const watchedByDay = useMemo(() => {
     const counts: Record<string, number> = {};
-    Object.values(state.watchedEpisodes).forEach(d => {
+    Object.values(watchedEpisodes).forEach(d => {
       if (d?.watchedAt) { const day = d.watchedAt.split('T')[0]; counts[day] = (counts[day] ?? 0) + 1; }
     });
     return Object.entries(counts).sort(([a],[b]) => a.localeCompare(b)).slice(-14).map(([date, count]) => ({ date: date.slice(5), count }));
-  }, [state.watchedEpisodes]);
+  }, [watchedEpisodes]);
 
   const ratingDist = useMemo(() => {
     const dist = [0,0,0,0,0];
-    Object.values(state.watchedEpisodes).forEach(d => { if (d?.rating && d.rating >= 1 && d.rating <= 5) dist[d.rating-1]++; });
+    Object.values(watchedEpisodes).forEach(d => { if (d?.rating && d.rating >= 1 && d.rating <= 5) dist[d.rating-1]++; });
     return dist.map((count, i) => ({ stars: i+1, count })).reverse();
-  }, [state.watchedEpisodes]);
+  }, [watchedEpisodes]);
 
   const avgRating = useMemo(() => {
-    const rated = Object.values(state.watchedEpisodes).filter(d => d?.rating);
+    const rated = Object.values(watchedEpisodes).filter(d => d?.rating);
     if (!rated.length) return 0;
     return (rated.reduce((s, d) => s + d!.rating!, 0) / rated.length).toFixed(1);
-  }, [state.watchedEpisodes]);
-
-  const quote = QUOTES[totalWatched % QUOTES.length];
+  }, [watchedEpisodes]);
 
   const cardStyle = {
     background: 'rgba(255,255,255,0.82)',
@@ -95,12 +84,8 @@ export default function StatsPage() {
         </div>
         <h2 className="text-xl font-black mb-2" style={{ color: '#0A1628' }}>No Stats Yet</h2>
         <p className="text-sm max-w-xs" style={{ color: '#64748B' }}>
-          Start watching episodes to unlock your pirate journey stats!
+          Start watching episodes to unlock your stats!
         </p>
-        <div className="mt-8 p-5 rounded-3xl max-w-xs" style={cardStyle}>
-          <p className="text-sm italic leading-relaxed font-medium" style={{ color: '#0A1628' }}>{quote.text}</p>
-          <p className="text-xs mt-2 font-semibold" style={{ color: '#E8A020' }}>{quote.attr}</p>
-        </div>
       </div>
     );
   }
@@ -122,11 +107,11 @@ export default function StatsPage() {
         <div className="px-5 grid grid-cols-2 gap-3">
           <StatCard label="Hours Watched" value={`${hoursWatched}h`} sub={`≈ ${Math.round(hoursWatched/24)} days`}
             icon={<Clock size={17} style={{ color: '#3B82F6' }} />} iconBg="rgba(59,130,246,0.12)" index={0} />
-          <StatCard label="Day Streak" value={effectiveStreak} sub={`Best: ${state.streakData.longestStreak}`}
+          <StatCard label="Day Streak" value={effectiveStreak} sub={`Best: ${streakData.longestStreak}`}
             icon={<Flame size={17} style={{ color: '#F97316' }} />} iconBg="rgba(249,115,22,0.12)" index={1} />
           <StatCard label="Canon Episodes" value={canonWatched} sub={`+ ${fillerWatched} filler`}
             icon={<BarChart2 size={17} style={{ color: '#16A34A' }} />} iconBg="rgba(22,163,74,0.12)" index={2} />
-          <StatCard label="Avg Rating" value={avgRating || '—'} sub={`${Object.values(state.watchedEpisodes).filter(d => d?.rating).length} rated`}
+          <StatCard label="Avg Rating" value={avgRating || '—'} sub={`${Object.values(watchedEpisodes).filter(d => d?.rating).length} rated`}
             icon={<Star size={17} style={{ color: '#E8A020' }} />} iconBg="rgba(232,160,32,0.12)" index={3} />
         </div>
       </Section>
@@ -242,7 +227,7 @@ export default function StatsPage() {
                 <span className="font-bold font-mono text-xs flex-shrink-0" style={{ color: '#E8A020' }}>EP {ep.number}</span>
                 <span className="text-xs font-medium flex-1 truncate" style={{ color: '#0A1628' }}>{ep.title}</span>
                 <div className="flex gap-0.5 flex-shrink-0">
-                  {Array.from({ length: state.watchedEpisodes[ep.number]?.rating ?? 0 }, (_, i) => (
+                  {Array.from({ length: watchedEpisodes[ep.number]?.rating ?? 0 }, (_, i) => (
                     <span key={i} style={{ color: '#E8A020', fontSize: 10 }}>★</span>
                   ))}
                 </div>
@@ -251,12 +236,6 @@ export default function StatsPage() {
           </div>
         </Section>
       )}
-
-      {/* Quote */}
-      <div className="mx-5 mb-4 rounded-2xl p-5" style={{ ...cardStyle, borderLeft: '3px solid #E8A020' }}>
-        <p className="text-sm italic leading-relaxed font-medium" style={{ color: '#0A1628' }}>{quote.text}</p>
-        <p className="text-xs mt-2 font-bold" style={{ color: '#E8A020' }}>{quote.attr}</p>
-      </div>
     </div>
   );
 }
