@@ -6,7 +6,7 @@ import { ANIME_REGISTRY, type AnimeMilestone } from '../data/animeRegistry';
 import AnimeSelector from '../components/AnimeSelector';
 import CircularProgress from '../components/CircularProgress';
 import ContinueWatching from '../components/ContinueWatching';
-import FloatingActionButton from '../components/FloatingActionButton';
+
 import EpisodeModal from '../components/EpisodeModal';
 import Confetti from '../components/Confetti';
 import { useToast } from '../components/Toast';
@@ -288,10 +288,7 @@ export default function HomePage({ onNavigate }: Props) {
         </div>
       )}
 
-      {/* FAB */}
-      {currentEpisode && currentEpisode.number <= animeTotal && !isWatched(currentEpisode.number) && (
-        <FloatingActionButton episodeNum={currentEpisode.number} onMark={handleMarkCurrentWatched} />
-      )}
+
 
       <EpisodeModal
         episode={selectedEpisode}
