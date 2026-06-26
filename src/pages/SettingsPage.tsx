@@ -4,7 +4,6 @@ import { Sun, Moon, Download, Upload, Trash2, Eye, EyeOff, Target, Check } from 
 import { useTracker } from '../context/TrackerContext';
 import type { TrackerState } from '../types';
 import { useToast } from '../components/Toast';
-import AnimeSelector from '../components/AnimeSelector';
 
 const cardStyle = {
   background: 'rgba(255,255,255,0.82)',
@@ -166,7 +165,6 @@ export default function SettingsPage() {
               );
             })}
           </div>
-          <AnimeSelector />
         </motion.div>
 
         {/* Appearance */}
