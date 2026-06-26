@@ -4,6 +4,7 @@ import { Sun, Moon, Download, Upload, Trash2, Eye, EyeOff, Target, Check } from 
 import { useTracker } from '../context/TrackerContext';
 import type { TrackerState } from '../types';
 import { useToast } from '../components/Toast';
+import AnimeSelector from '../components/AnimeSelector';
 
 const cardStyle = {
   background: 'rgba(255,255,255,0.82)',
@@ -38,7 +39,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 export default function SettingsPage() {
-  const { state, updateSettings, importState, reset, totalWatched, markUpTo, lastWatched, animeTotal, animeName } = useTracker();
+  const { state, updateSettings, importState, reset, totalWatched, markUpTo, lastWatched, animeTotal, animeName, userAnimeIds, removeAnime, activeAnime, setActiveAnime, getAnimeEntry } = useTracker();
   const toast = useToast();
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [jumpEp, setJumpEp] = useState(String(lastWatched || ''));
@@ -120,6 +121,54 @@ export default function SettingsPage() {
       </div>
 
       <div className="px-5 space-y-3">
+
+        {/* My Anime */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.03, type: 'spring', stiffness: 360, damping: 28 }}
+          className="rounded-2xl p-4"
+          style={cardStyle}
+        >
+          <SectionTitle>My Anime</SectionTitle>
+          <div className="space-y-2 mb-3">
+            {userAnimeIds.map(id => {
+              const entry = getAnimeEntry(id);
+              if (!entry) return null;
+              const progress = state.animeProgress[id];
+              const watched = progress ? Object.values(progress.watchedEpisodes).filter(d => d?.isWatched).length : 0;
+              const pct = Math.round((watched / entry.total) * 100);
+              const isActive = id === activeAnime;
+              return (
+                <div key={id} className="flex items-center gap-2.5 p-2.5 rounded-xl"
+                  style={{ background: isActive ? 'rgba(10,35,66,0.05)' : 'transparent' }}>
+                  <span className="text-lg leading-none">{entry.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate" style={{ color: '#0A1628' }}>{entry.name}</p>
+                    <p className="text-[10px] font-medium" style={{ color: '#94A3B8' }}>{watched}/{entry.total} · {pct}%</p>
+                  </div>
+                  {isActive
+                    ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(10,35,66,0.08)', color: '#0A1628' }}>Active</span>
+                    : <div className="flex gap-1.5">
+                        <motion.button whileTap={{ scale: 0.95 }} onClick={() => setActiveAnime(id)}
+                          className="text-[10px] font-bold px-2 py-1 rounded-lg" style={{ background: 'rgba(10,35,66,0.06)', color: '#0A1628' }}>
+                          Switch
+                        </motion.button>
+                        {userAnimeIds.length > 1 && (
+                          <motion.button whileTap={{ scale: 0.95 }} onClick={() => removeAnime(id)}
+                            className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.08)' }}>
+                            <Trash2 size={11} style={{ color: '#EF4444' }} />
+                          </motion.button>
+                        )}
+                      </div>
+                  }
+                </div>
+              );
+            })}
+          </div>
+          <AnimeSelector />
+        </motion.div>
+
         {/* Appearance */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}

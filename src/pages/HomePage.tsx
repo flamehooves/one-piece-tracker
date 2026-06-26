@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Flame, Target, Clock, ChevronRight, Zap, Trophy, Anchor } from 'lucide-react';
 import { useTracker } from '../context/TrackerContext';
-import { ANIME_REGISTRY, ANIME_IDS } from '../data/animeRegistry';
+import { ANIME_REGISTRY, type AnimeMilestone } from '../data/animeRegistry';
+import AnimeSelector from '../components/AnimeSelector';
 import CircularProgress from '../components/CircularProgress';
 import ContinueWatching from '../components/ContinueWatching';
 import FloatingActionButton from '../components/FloatingActionButton';
@@ -17,13 +18,13 @@ export default function HomePage({ onNavigate }: Props) {
   const {
     totalWatched, nextEpisode, markWatched, isWatched, getEpisodeData, updateEpisode, markUnwatched,
     effectiveStreak, watchedToday,
-    activeAnime, setActiveAnime, animeName, animeIcon, animeEpisodes, animeTotal,
+    activeAnime, animeName, animeIcon, animeEpisodes, animeTotal, getAnimeEntry,
   } = useTracker();
   const toast = useToast();
   const [selectedEp, setSelectedEp] = useState<number | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
 
-  const animeEntry = ANIME_REGISTRY[activeAnime];
+  const animeEntry = getAnimeEntry(activeAnime) ?? ANIME_REGISTRY['one-piece'];
   const milestones = animeEntry.milestones;
   const quotes = animeEntry.quotes;
 
@@ -46,9 +47,9 @@ export default function HomePage({ onNavigate }: Props) {
     markWatched(currentEpisode.number);
     toast(`Episode ${currentEpisode.number} marked! ${animeIcon}`, 'success');
     const newPct = Math.round(((totalWatched + 1) / animeTotal) * 100);
-    if (milestones.some(m => m.pct <= newPct && m.pct > pct)) {
+    if (milestones.some((m: AnimeMilestone) => m.pct <= newPct && m.pct > pct)) {
       setShowConfetti(true);
-      const m = milestones.find(m2 => m2.pct <= newPct && m2.pct > pct)!;
+      const m = milestones.find((m2: AnimeMilestone) => m2.pct <= newPct && m2.pct > pct)!;
       toast(`${m.icon} ${m.label} achieved!`, 'success');
     }
   }
@@ -83,29 +84,9 @@ export default function HomePage({ onNavigate }: Props) {
         </div>
       </div>
 
-      {/* ── Anime Switcher ── */}
+      {/* ── Anime Selector ── */}
       <div className="px-5 mb-4">
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-          {ANIME_IDS.map(id => {
-            const entry = ANIME_REGISTRY[id];
-            const isActive = id === activeAnime;
-            return (
-              <motion.button
-                key={id}
-                whileTap={{ scale: 0.93 }}
-                onClick={() => setActiveAnime(id)}
-                className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold transition-all"
-                style={isActive
-                  ? { background: '#0A1628', color: '#fff', boxShadow: '0 4px 12px rgba(10,35,66,0.25)' }
-                  : { background: 'rgba(255,255,255,0.82)', color: '#64748B', border: '1px solid rgba(255,255,255,0.95)', boxShadow: '0 2px 8px rgba(10,35,66,0.06)' }
-                }
-              >
-                <span className="text-sm leading-none">{entry.icon}</span>
-                <span>{entry.shortName}</span>
-              </motion.button>
-            );
-          })}
-        </div>
+        <AnimeSelector />
       </div>
 
       {/* ── Main Progress Card ── */}

@@ -27,7 +27,16 @@ export interface UserEpisodeData {
   watchedAt?: string;
 }
 
-export type AnimeId = 'one-piece' | 'dbz' | 'dbgt' | 'dbs';
+export type AnimeId = string;
+export const BUILTIN_ANIME_IDS = ['one-piece', 'dbz', 'dbgt', 'dbs'] as const;
+
+export interface CustomAnimeEntry {
+  id: string;
+  name: string;
+  icon: string;
+  totalEpisodes: number;
+  color: string;
+}
 
 export interface AnimeProgress {
   watchedEpisodes: Record<number, UserEpisodeData>;
@@ -37,8 +46,10 @@ export interface AnimeProgress {
 }
 
 export interface TrackerState {
-  activeAnime: AnimeId;
-  animeProgress: Partial<Record<AnimeId, AnimeProgress>>;
+  activeAnime: string;
+  animeProgress: Record<string, AnimeProgress>;
+  userAnimeIds: string[];
+  customAnime: Record<string, CustomAnimeEntry>;
   settings: Settings;
 }
 

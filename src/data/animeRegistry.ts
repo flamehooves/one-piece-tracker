@@ -1,4 +1,4 @@
-import type { AnimeId, ArcDefinition, Episode } from '../types';
+import type { ArcDefinition, Episode, CustomAnimeEntry } from '../types';
 import { ARC_DEFINITIONS as OP_ARCS } from './arcs';
 import { ALL_EPISODES as OP_EPISODES } from './episodes';
 import { DBZ_ARC_DEFINITIONS, DBZ_EPISODES, DBZ_TOTAL } from './dbz';
@@ -13,7 +13,7 @@ export interface AnimeMilestone {
 }
 
 export interface AnimeRegistryEntry {
-  id: AnimeId;
+  id: string;
   name: string;
   shortName: string;
   icon: string;
@@ -24,7 +24,7 @@ export interface AnimeRegistryEntry {
   quotes: string[];
 }
 
-export const ANIME_REGISTRY: Record<AnimeId, AnimeRegistryEntry> = {
+export const BUILTIN_REGISTRY: Record<string, AnimeRegistryEntry> = {
   'one-piece': {
     id: 'one-piece',
     name: 'One Piece',
@@ -119,4 +119,63 @@ export const ANIME_REGISTRY: Record<AnimeId, AnimeRegistryEntry> = {
   },
 };
 
-export const ANIME_IDS: AnimeId[] = ['one-piece', 'dbz', 'dbgt', 'dbs'];
+// Alias for backward compat
+export const ANIME_REGISTRY = BUILTIN_REGISTRY;
+export const ANIME_IDS = ['one-piece', 'dbz', 'dbgt', 'dbs'] as const;
+
+const SEASON_COLORS = ['#3B82F6', '#8B5CF6', '#EC4899', '#F97316', '#10B981', '#E8A020', '#06B6D4', '#EF4444'];
+const SEASON_SIZE = 25;
+
+function generateCustomArcs(entry: CustomAnimeEntry): ArcDefinition[] {
+  const count = Math.ceil(entry.totalEpisodes / SEASON_SIZE);
+  return Array.from({ length: count }, (_, i) => ({
+    id: `${entry.id}-s${i + 1}`,
+    name: count === 1 ? entry.name : `Season ${i + 1}`,
+    saga: count === 1 ? entry.name : `Season ${i + 1}`,
+    startEp: i * SEASON_SIZE + 1,
+    endEp: Math.min((i + 1) * SEASON_SIZE, entry.totalEpisodes),
+    isFiller: false,
+    color: SEASON_COLORS[i % SEASON_COLORS.length],
+    description: `${entry.name} — Season ${i + 1}`,
+    thumbnail: entry.icon,
+  }));
+}
+
+function generateCustomEpisodes(entry: CustomAnimeEntry): Episode[] {
+  const arcs = generateCustomArcs(entry);
+  const eps: Episode[] = [];
+  for (const arc of arcs) {
+    for (let n = arc.startEp; n <= arc.endEp; n++) {
+      eps.push({ number: n, title: `Episode ${n}`, arcId: arc.id, arcName: arc.name, saga: arc.saga, isFiller: false });
+    }
+  }
+  return eps;
+}
+
+export function buildCustomEntry(entry: CustomAnimeEntry): AnimeRegistryEntry {
+  const arcs = generateCustomArcs(entry);
+  const episodes = generateCustomEpisodes(entry);
+  const shortName = entry.name.length > 12 ? entry.name.slice(0, 12) + '…' : entry.name;
+  const milestones: AnimeMilestone[] = [
+    { pct: 10,  icon: '🎬', label: 'Getting Started', msg: "You've begun your journey!" },
+    { pct: 25,  icon: '⭐', label: 'Quarter Done',   msg: '25% conquered!' },
+    { pct: 50,  icon: '🔥', label: 'Halfway There',  msg: "You're on a roll!" },
+    { pct: 75,  icon: '👑', label: 'Almost There',   msg: 'The finish line is near!' },
+    { pct: 100, icon: '🏆', label: 'Completed!',     msg: `You finished ${entry.name}!` },
+  ];
+  return {
+    id: entry.id,
+    name: entry.name,
+    shortName,
+    icon: entry.icon,
+    arcs,
+    episodes,
+    total: entry.totalEpisodes,
+    milestones,
+    quotes: [
+      `"Every episode of ${entry.name} is worth watching."`,
+      `"Keep going — ${entry.name} gets better each arc."`,
+      `"${entry.icon} ${entry.name} — on the watch list and making progress."`,
+    ],
+  };
+}
